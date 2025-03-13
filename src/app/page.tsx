@@ -6,7 +6,7 @@ import { api, HydrateClient } from "~/trpc/server";
 import Image from "next/image";
 import Logo from "public/logo.png";
 
-export default async function Home() {
+export default async function Landing() {
   const hello = await api.post.hello({ text: "from tRPC" });
 
   void api.post.getLatest.prefetch();

@@ -1,22 +1,36 @@
-import Link from "next/link";
+"use client";
 
-import { api, HydrateClient } from "~/trpc/server";
+import Link from "next/link";
+// import { api, HydrateClient } from "~/trpc/server";
 import { HomeNavbar } from "~/app/_components/HomeNavbar";
 import { HomeSideBar } from "~/app/_components/HomeSidebar";
+import { useState } from "react";
 
-export default async function Home() {
-  const hello = await api.post.hello({ text: "from tRPC" });
+export default function Home() {
+  const [toggleCreateBase, setToggleCreateBase] = useState<boolean>(false);
 
-  void api.post.getLatest.prefetch();
+  // const hello = await api.post.hello({ text: "from tRPC" });
+  // void api.post.getLatest.prefetch();
 
   return (
-    <HydrateClient>
-        <div className="flex flex-row">
-          <HomeNavbar/>
-          <div className="pt-64">
-            <HomeSideBar/>
+    // <HydrateClient>
+      <div className="h-screen flex flex-col">
+        <div className="fixed top-0 left-0 w-full z-50">
+          <HomeNavbar />
+        </div>
+
+        <div className="flex flex-row pt-16">
+          <div className="fixed top-16 left-0 w-64 h-[calc(100vh-4rem)]">
+            <HomeSideBar setToggleCreateBase={setToggleCreateBase}/>
+          </div>
+
+          <div className="flex-1 ml-72 pl-20 pt-16 p-8 bg-gray-100 w-full h-screen">
+            <article className="prose lg:prose-xl flex flex-col items-start justify-start">
+              <h2>Home</h2>
+            </article>
           </div>
         </div>
-    </HydrateClient>
+      </div>
+    // </HydrateClient>
   );
 }
