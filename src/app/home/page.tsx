@@ -1,13 +1,17 @@
-"use client";
-
 import Link from "next/link";
 // import { api, HydrateClient } from "~/trpc/server";
 import { HomeNavbar } from "~/app/_components/HomeNavbar";
 import { HomeSideBar } from "~/app/_components/HomeSidebar";
-import { useState } from "react";
+// import { useState } from "react";
+import { SessionProvider } from "next-auth/react"
+import { getServerSession } from "next-auth";
+import { authOptions } from "~/lib/auth";
 
-export default function Home() {
-  const [toggleCreateBase, setToggleCreateBase] = useState<boolean>(false);
+const Home = async () => {
+  // const [toggleCreateBase, setToggleCreateBase] = useState<boolean>(false);
+
+  const session = await getServerSession(authOptions);
+  console.log(session);
 
   // const hello = await api.post.hello({ text: "from tRPC" });
   // void api.post.getLatest.prefetch();
@@ -21,7 +25,7 @@ export default function Home() {
 
         <div className="flex flex-row pt-16">
           <div className="fixed top-16 left-0 w-64 h-[calc(100vh-4rem)]">
-            <HomeSideBar setToggleCreateBase={setToggleCreateBase}/>
+            <HomeSideBar/>
           </div>
 
           <div className="flex-1 ml-72 pl-20 pt-16 p-8 bg-gray-100 w-full h-screen">
@@ -34,3 +38,5 @@ export default function Home() {
     // </HydrateClient>
   );
 }
+
+export default Home;

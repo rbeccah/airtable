@@ -6,7 +6,7 @@ interface HomeCreateBaseButtonProps {
   setToggleCreateBase: Dispatch<SetStateAction<boolean>>;
 }
 
-export function HomeSideBar({ setToggleCreateBase }: HomeCreateBaseButtonProps) {
+export function HomeSideBar() {
   return (
     <div>
       <aside className="flex flex-col z-10 fixed top-16 left-0 w-72 h-full text-white shadow-md">
@@ -52,7 +52,7 @@ export function HomeSideBar({ setToggleCreateBase }: HomeCreateBaseButtonProps) 
           </div>
 
           <div className="mt-auto mb-20">
-            <HomeCreateBaseButton setToggleCreateBase={setToggleCreateBase}/>
+            <HomeCreateBaseButton/>
           </div>
         </div>
       </aside>

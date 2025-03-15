@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { signOut } from "next-auth/react"
 
 export function HomeNavbar() {
   const [userMenu, setUserMenu] = useState(false);
@@ -72,7 +73,13 @@ export function HomeNavbar() {
                         </ul>
                         <ul className="py-1 text-gray-500 dark:text-gray-400" aria-labelledby="dropdown">
                             <li>
-                                <a href="#" className="block py-2 px-4 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white">Sign out</a>
+                                <a 
+                                  href="#" 
+                                  className="block py-2 px-4 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
+                                  onClick={() => signOut({ callbackUrl: 'http://localhost:3000' })}
+                                >
+                                  Sign out
+                                </a>
                             </li>
                         </ul>
                     </div>
