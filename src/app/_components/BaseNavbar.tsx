@@ -2,8 +2,11 @@
 import { useState } from "react";
 import { signOut } from "next-auth/react"
 import Image from "next/image";
+import { IoMdArrowRoundBack } from "react-icons/io";
+import { useRouter } from "next/navigation";
 
 export function BaseNavbar() {
+  const router = useRouter();
   const [userMenu, setUserMenu] = useState(false);
 
   const toggleUserMenu = () => {
@@ -14,6 +17,13 @@ export function BaseNavbar() {
     <header className="antialiased">
       <nav className="fixed top-0 left-0 w-full bg-blue-600 px-4 lg:px-6 py-2.5 dark:bg-gray-800 z-50">
           <div className="flex flex-wrap items-center">
+          <button 
+            type="button" 
+            className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-full text-sm p-2.5 text-center inline-flex items-center me-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 mr-5"
+            onClick={() => router.push(`/home`)}
+          >
+            <IoMdArrowRoundBack className="h-5 w-5"/>
+          </button>
               <div className="flex justify-start items-center">
                 <Image src="/airtable_white.svg" width={32} height={32} alt="Airtable Logo" />
               </div>

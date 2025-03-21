@@ -24,3 +24,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Failed to create base" }, { status: 500 });
   }
 }
+
+export async function GET(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const bases = await prisma.base.findMany({
+      where: {
+        user: { email: session.user.email },
+      },
+      include: { tables: true },
+    });
+
+    return NextResponse.json(bases);
+  } catch (error) {
+    return NextResponse.json({ error: "Failed to fetch bases" }, { status: 500 });
+  }
+}

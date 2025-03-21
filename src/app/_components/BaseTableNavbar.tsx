@@ -4,15 +4,18 @@ import { Button } from "flowbite-react";
 import { FaRegEyeSlash } from "react-icons/fa6";
 import { IoFilterOutline } from "react-icons/io5";
 import { BiSortAlt2 } from "react-icons/bi";
+import { FaSave } from "react-icons/fa";
+import { useSave } from "~/app/_context/SaveContext";
 
 export function BaseTableNavbar() {
+  const { triggerSave } = useSave();
 
   return (
     <header className="antialiased">
       <nav className="w-full bg-white border border-t-0 border-gray px-2 lg:px-6 py-1 dark:bg-gray-800 z-50">
           <div className="flex flex-wrap items-center">
               <div className="block flex flex-row">
-              <Button className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white mx-1 py-0">
+              <Button className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white mx-1">
                 <FaRegEyeSlash className="mr-2 h-5 w-5" />
                 Hide fields
               </Button>
@@ -23,6 +26,13 @@ export function BaseTableNavbar() {
               <Button className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white mx-1">
                 <BiSortAlt2 className="mr-2 h-5 w-5" />
                 Sort
+              </Button>
+              <Button 
+                className="bg-blue-600 text-white enabled:hover:bg-blue-700 focus:ring-white mx-1"
+                onClick={triggerSave}
+              >
+                <FaSave className="mr-2 h-5 w-5" />
+                Save
               </Button>
               </div>
               <div className="ml-auto flex items-center lg:order-2">
