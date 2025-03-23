@@ -7,25 +7,32 @@ import { BaseNavbar } from "~/app/_components/BaseNavbar";
 import BaseTableTabsBar from "~/app/_components/BaseTableTabsBar";
 import { BaseTableNavbar } from "~/app/_components/BaseTableNavbar";
 import AirTable from "~/app/_components/AirTable";
+import { Table } from "~/types/base";
+
+interface ApiResponse {
+  success: boolean;
+  tables: Table[];
+}
 
 const Base = () => {
   const params = useParams();
   const baseId = params.baseId as string;
 
-  const [tables, setTables] = useState<any[]>([]);
+  const [tables, setTables] = useState<Table[]>([]);
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
-  const [selectedTableData, setSelectedTableData] = useState<any>(null);
+  const [selectedTableData, setSelectedTableData] = useState<Table | null>(null);
 
   useEffect(() => {
     const fetchTables = async () => {
       try {
         const res = await fetch(`/api/base?baseId=${baseId}`);
-        const data = await res.json();
+        const data: ApiResponse = await res.json();
+
         if (data.success) {
           setTables(data.tables);
           if (data.tables.length > 0) {
-            setSelectedTableId(data.tables[0].id);
-            setSelectedTableData(data.tables[0]);
+            setSelectedTableId(data.tables[0]?.id ?? null);
+            setSelectedTableData(data.tables[0] ?? null);
           }
         }
       } catch (error) {
@@ -34,12 +41,12 @@ const Base = () => {
     };
 
     fetchTables();
-  }, []);
+  }, [baseId]);
 
   useEffect(() => {
     if (selectedTableId) {
-      const tableData = tables.find((table) => table.id === selectedTableId);
-      setSelectedTableData(tableData || null);
+      const tableData = tables.find((table) => table.id === selectedTableId) ?? null;
+      setSelectedTableData(tableData);
     }
   }, [selectedTableId, tables]);
 
@@ -62,7 +69,7 @@ const Base = () => {
         </div>
       </div>
     </SaveProvider>
-  )
-}
+  );
+};
 
 export default Base;

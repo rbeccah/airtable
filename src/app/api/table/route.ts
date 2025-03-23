@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { prisma } from "~/lib/db";
 
 interface ColumnInput {
@@ -26,7 +25,7 @@ interface RequestBody {
 
 export async function POST(req: Request) {
   try {
-    const body: RequestBody = await req.json();
+    const body = await req.json() as RequestBody;
     const { tableId, cellId, value } = body;
 
     if (!tableId || !cellId || typeof value !== "string") {
