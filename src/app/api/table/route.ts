@@ -18,9 +18,15 @@ interface TableInput {
   cells: CellInput[];
 }
 
+interface RequestBody {
+  tableId: string | null;
+  cellId: string;
+  value: string;
+}
+
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const body: RequestBody = await req.json();
     const { tableId, cellId, value } = body;
 
     if (!tableId || !cellId || typeof value !== "string") {

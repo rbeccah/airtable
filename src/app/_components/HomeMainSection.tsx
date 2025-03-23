@@ -9,18 +9,22 @@ export function HomeMainSection() {
   const [bases, setBases] = useState<{ id: string; name: string }[]>([]);
 
   async function fetchBases() {
-    const res = await fetch("/api/user?type=bases");
-    if (!res.ok) {
-      console.error("Failed to fetch bases");
-      return;
+    try {
+      const res = await fetch("/api/user?type=bases");
+      if (!res.ok) {
+        console.error("Failed to fetch bases");
+        return;
+      }
+
+      const bases = (await res.json()) as Base[];
+      setBases(bases);
+    } catch (error) {
+      console.error("Error fetching bases:", error);
     }
-  
-    const bases = (await res.json()) as Base[];
-    setBases(bases);
   }
 
   useEffect(() => {
-    fetchBases();
+    fetchBases().catch(console.error);
   }, []);
 
   return (
