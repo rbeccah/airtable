@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react"
 import { prisma } from "~/lib/db";
 import { useRouter } from "next/navigation";
+import { Base } from "~/types/base";
 
 export function HomeCreateBaseButton() {
   const router = useRouter();
@@ -17,7 +18,7 @@ export function HomeCreateBaseButton() {
     });
 
     if (response.ok) {
-      const base = await response.json();
+      const base = (await response.json()) as Base;
       console.log("Base created:", base);
       router.push(`/base/${base.id}`);
     } else {

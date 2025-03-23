@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import HomeBaseCard from '~/app/_components/HomeBaseCard';
+import { Base } from '~/types/base';
 
 export function HomeMainSection() {
   const [bases, setBases] = useState<{ id: string; name: string }[]>([]);
@@ -14,7 +15,7 @@ export function HomeMainSection() {
       return;
     }
   
-    const bases = await res.json();
+    const bases = (await res.json()) as Base[];
     setBases(bases);
   }
 

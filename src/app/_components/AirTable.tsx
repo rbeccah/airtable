@@ -98,7 +98,6 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
     },
   };
 
-  // ✅ Fixed save function
   const saveCellData = async (cellId: string, value: string) => {
     try {
       const response = await fetch("/api/table", {
@@ -107,7 +106,7 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
         body: JSON.stringify({ tableId, cellId, value }),
       });
 
-      const result: { success: boolean; error?: string } = await response.json();
+      const result = (await response.json()) as { success: boolean; error?: string };
       if (!result.success) {
         console.error("Failed to update cell:", result.error);
       }
