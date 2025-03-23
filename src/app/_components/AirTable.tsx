@@ -64,8 +64,9 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
 
   const EditableCell: React.FC<{
     cellData: { id: string; value: string };
+    columnType: string;
     updateData: (value: string) => void;
-  }> = ({ cellData, updateData }) => {
+  }> = ({ cellData, columnType, updateData }) => {
     const [value, setValue] = useState(cellData.value);
 
     const onBlur = () => {
@@ -79,6 +80,7 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onBlur={onBlur}
+        type={columnType === "number" ? "number" : "text"}
       />
     );
   };
@@ -86,10 +88,12 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
   const defaultColumn: Partial<ColumnDef<TableRow>> = {
     cell: ({ getValue, row, column, table }) => {
       const cellData = getValue() as { id: string; value: string };
+      const columnType = tableData?.columns.find((c) => c.id === column.id)?.type ?? "TEXT";
 
       return (
         <EditableCell
           cellData={cellData}
+          columnType={columnType}
           updateData={(newValue) => {
             table.options.meta?.updateData(row.index, column.id, newValue);
           }}
@@ -115,7 +119,6 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
     }
   };
 
-  // ✅ Fixed `updateData` function
   const table = useReactTable<TableRow>({
     data,
     columns,
@@ -129,7 +132,7 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
               ? {
                   ...rowData,
                   [columnId]: {
-                    id: rowData[columnId]?.id ?? "", // ✅ Safely handle undefined
+                    id: rowData[columnId]?.id ?? "",
                     value: String(value),
                   },
                 }

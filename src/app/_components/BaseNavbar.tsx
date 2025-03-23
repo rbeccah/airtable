@@ -5,6 +5,8 @@ import Image from "next/image";
 import { IoMdArrowRoundBack } from "react-icons/io";
 import { useRouter } from "next/navigation";
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
+
 export function BaseNavbar() {
   const router = useRouter();
   const [userMenu, setUserMenu] = useState(false);
@@ -70,7 +72,7 @@ export function BaseNavbar() {
                               <a 
                                 href="#" 
                                 className="block py-2 px-4 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
-                                onClick={() => signOut({ callbackUrl: 'http://localhost:3000' })}
+                                onClick={() => signOut({ callbackUrl: `${APP_URL}` })}
                               >
                                 Sign out
                               </a>

@@ -1,9 +1,10 @@
 "use client"
 
 import { signIn } from "next-auth/react"
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
 
 export function SignInButton() {
-    const loginWithGoogle = () => signIn('google', {callbackUrl: 'http://localhost:3000/home'});
+    const loginWithGoogle = () => signIn('google', {callbackUrl: `${APP_URL}/home`});
     return (
       <button 
         type="button" 
