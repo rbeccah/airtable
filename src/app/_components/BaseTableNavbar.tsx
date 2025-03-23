@@ -27,13 +27,6 @@ export function BaseTableNavbar() {
                 <BiSortAlt2 className="mr-2 h-5 w-5" />
                 Sort
               </Button>
-              <Button 
-                className="bg-blue-600 text-white enabled:hover:bg-blue-700 focus:ring-white mx-1"
-                onClick={triggerSave}
-              >
-                <FaSave className="mr-2 h-5 w-5" />
-                Save
-              </Button>
               </div>
               <div className="ml-auto flex items-center lg:order-2">
                 <form action="#" method="GET" className="hidden lg:block lg:pl-2">

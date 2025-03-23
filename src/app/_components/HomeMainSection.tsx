@@ -8,7 +8,7 @@ export function HomeMainSection() {
   const [bases, setBases] = useState<{ id: string; name: string }[]>([]);
 
   async function fetchBases() {
-    const res = await fetch("/api/base");
+    const res = await fetch("/api/user?type=bases");
     if (!res.ok) {
       console.error("Failed to fetch bases");
       return;

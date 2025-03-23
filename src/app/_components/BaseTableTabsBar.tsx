@@ -1,10 +1,19 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Tabs } from "flowbite-react";
 import type { CustomFlowbiteTheme } from "flowbite-react";
 import { Flowbite } from "flowbite-react";
 
-export function BaseTableTabsBar() {
+interface Props {
+  baseId: string;
+  tables: { id: string; name: string }[];
+  setSelectedTableId: (id: string) => void;
+}
+
+const BaseTableTabsBar: React.FC<Props> = ({ baseId, tables, setSelectedTableId }) => {
+  const [activeTab, setActiveTab] = useState(0);
+
   const customTheme: CustomFlowbiteTheme = {
     tabs: {
       base: "gap-0",
@@ -30,29 +39,27 @@ export function BaseTableTabsBar() {
   return (
     <div>
       <Flowbite theme={{ theme: customTheme }}>
-        <Tabs aria-label="Default tabs" variant="default">
-          <Tabs.Item active title="Table 1">
-            {/* This is <span className="font-medium text-gray-800 dark:text-white">Profile tab's associated content</span>.
-            Clicking another tab will toggle the visibility of this one for the next. The tab JavaScript swaps classes to
-            control the content visibility and styling. */}
-          </Tabs.Item>
-          <Tabs.Item title="Table 2">
-            {/* This is <span className="font-medium text-gray-800 dark:text-white">Dashboard tab's associated content</span>.
-            Clicking another tab will toggle the visibility of this one for the next. The tab JavaScript swaps classes to
-            control the content visibility and styling. */}
-          </Tabs.Item>
-          <Tabs.Item title="Table 3">
-            {/* This is <span className="font-medium text-gray-800 dark:text-white">Settings tab's associated content</span>.
-            Clicking another tab will toggle the visibility of this one for the next. The tab JavaScript swaps classes to
-            control the content visibility and styling. */}
-          </Tabs.Item>
-          <Tabs.Item title="Table 4">
-            {/* This is <span className="font-medium text-gray-800 dark:text-white">Contacts tab's associated content</span>.
-            Clicking another tab will toggle the visibility of this one for the next. The tab JavaScript swaps classes to
-            control the content visibility and styling. */}
-          </Tabs.Item>
-        </Tabs>
+        {tables.length > 0 ? (
+          <Tabs
+            aria-label="Table Tabs"
+            variant="default"
+            onActiveTabChange={(index) => {
+              if (tables[index]) {
+                setActiveTab(index);
+                setSelectedTableId(tables[index].id);
+              }
+            }}
+          >
+            {tables.map((table, index) => (
+              <Tabs.Item key={table.id} title={table.name} active={index === activeTab} />
+            ))}
+          </Tabs>
+        ) : (
+          <p className="text-white p-4">No tables found</p>
+        )}
       </Flowbite>
     </div>
-  )
+  );
 }
+
+export default BaseTableTabsBar;

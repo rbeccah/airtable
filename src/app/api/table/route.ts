@@ -20,91 +20,66 @@ interface TableInput {
 
 export async function POST(req: Request) {
   try {
-    const { baseId, tableId, data } = await req.json();
+    const body = await req.json();
+    const { tableId, cellId, value } = body;
 
-    if (!baseId || !data || !Array.isArray(data) || data.length === 0) {
-      return NextResponse.json({ success: false, error: "Invalid input" });
+    if (!tableId || !cellId || typeof value !== "string") {
+      return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
-    // Extract column names and types
-    const firstRow = data[0];
-    const columns: ColumnInput[] = Object.keys(firstRow).map((key) => ({
-      name: key,
-      type: typeof firstRow[key] === "number" ? "NUMBER" : "TEXT",
-    }));
-
-    let table;
-
-    if (tableId) {
-      // Find the specific table
-      table = await prisma.table.findUnique({
-        where: { id: tableId, baseId },
-        include: { columns: true },
-      });
-
-      if (!table) {
-        return NextResponse.json({ success: false, error: "Table not found" });
-      }
-    } else {
-      // If no tableId is provided, create a new table
-      table = await prisma.table.create({
-        data: {
-          name: `New Table`,
-          baseId,
-          columns: {
-            create: columns,
-          },
-        },
-        include: { columns: true },
-      });
-    }
-
-    // Map existing columns
-    const columnMap = table.columns.reduce(
-      (acc, col) => ({ ...acc, [col.name]: col.id }),
-      {} as Record<string, string>
-    );
-
-    // Add new columns if needed
-    const newColumns = columns.filter((col) => !columnMap[col.name]);
-
-    if (newColumns.length > 0) {
-      const createdColumns = await prisma.column.createMany({
-        data: newColumns.map((col) => ({ ...col, tableId: table!.id })),
-      });
-
-      // Refresh table with new columns
-      table = await prisma.table.findUnique({
-        where: { id: table.id },
-        include: { columns: true },
-      });
-
-      if (!table) {
-        throw Error;
-      }
-
-      table.columns.forEach((col) => {
-        columnMap[col.name] = col.id;
-      });
-    }
-
-    // Insert or update cell data
-    const cellRecords = data.flatMap((row) =>
-      Object.entries(row).map(([key, value]) => ({
-        tableId: table!.id,
-        columnId: columnMap[key]!,
-        value: String(value),
-      }))
-    );
-
-    await prisma.cell.createMany({
-      data: cellRecords,
-      skipDuplicates: true,
+    // Update the single cell in Prisma
+    const updatedCell = await prisma.cell.update({
+      where: { id: cellId },
+      data: { value },
     });
 
-    return NextResponse.json({ success: true, tableId: table.id });
+    return NextResponse.json({ success: true, updatedCell });
   } catch (error) {
-    console.error("Error inserting/updating data:", error);
-    return NextResponse.json({ success: false, error: "Failed to insert or update data" });
+    console.error("Error updating cell:", error);
+    return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+export async function GET(req: Request) {
+  try {
+    // Extract tableId from request URL
+    const { searchParams } = new URL(req.url);
+    const tableId = searchParams.get("tableId");
+
+    if (!tableId) {
+      return NextResponse.json({ success: false, error: "Missing tableId" });
+    }
+
+    // Fetch table with columns and cells
+    const table = await prisma.table.findUnique({
+      where: { id: tableId },
+      include: {
+        columns: true,
+        cells: true,
+      },
+    });
+
+    if (!table) {
+      return NextResponse.json({ success: false, error: "Table not found" });
+    }
+
+    // Format cell data into a structured row-based format
+    const formattedData: Record<string, Record<string, string>> = {};
+
+    table.cells.forEach((cell) => {
+      (formattedData[cell.rowId] ||= {})[cell.columnId] = cell.value;
+    });
+
+    return NextResponse.json({
+      success: true,
+      table,
+      data: formattedData,
+    });
+  } catch (error) {
+    console.error("Error fetching table:", error);
+    return NextResponse.json({
+      success: false,
+      error: "Failed to fetch table",
+    });
   }
 }

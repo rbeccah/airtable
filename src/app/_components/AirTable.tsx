@@ -4,141 +4,141 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useSave } from "~/app/_context/SaveContext";
 import {
-  Column,
-  Table,
   ColumnDef,
   useReactTable,
   getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
   flexRender,
+  TableMeta,
   RowData,
-} from '@tanstack/react-table'
-import { faker } from "@faker-js/faker";
+} from "@tanstack/react-table";
+
 declare module '@tanstack/react-table' {
   interface TableMeta<TData extends RowData> {
-    updateData: (rowIndex: number, columnId: string, value: unknown) => void
+    updateData: (rowIndex: number, columnId: string, value: unknown) => void;
   }
 }
 
-export function AirTable() {
-  const params = useParams();
-  const baseId = params.baseId as string;
-  const { setSaveHandler } = useSave();
-
-  type TableData = {
-    id: number;
+interface Props {
+  tableData: {
+    id: string;
     name: string;
-    age: number;
-    role: string;
-  };
-  
-  // Generate default data using Faker.js
-  const generateDefaultData = (count: number): TableData[] => {
-    return Array.from({ length: count }, (_, index) => ({
-      id: index + 1,
-      name: faker.person.fullName(),
-      age: faker.number.int({ min: 20, max: 60 }),
-      role: faker.person.jobTitle(),
-    }));
-  };
+    columns: { id: string; name: string; type: string }[];
+    cells: { id: string; columnId: string; value: string; rowId: string }[];
+  } | null;
+  tableId: string | null;
+}
 
+/**
+ * {
+      rowId: "row1",
+      columnId1: { cellId: "cell1", value: "Alice" },
+      ...
+    }
+ */
+type TableRow = { rowId: string } & Record<string, { id: string; value: string }>;
 
-  const [data, setData] = useState<TableData[]>(generateDefaultData(10));
+const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
+  const [data, setData] = useState<TableRow[]>([]);
+  const [columns, setColumns] = useState<ColumnDef<TableRow>[]>([]);
 
-  // Update cell data
-  const handleInputChange = (rowIndex: number, columnId: string, value: string) => {
-    setData((prevData) =>
-      prevData.map((row, index) =>
-        index === rowIndex ? { ...row, [columnId]: value } : row
-      )
-    );
-  };
+  // Format cell data into structured row-based format
+  useEffect(() => {
+    if (!tableData) return;
 
-  const defaultColumn: Partial<ColumnDef<TableData>> = {
-    cell: ({ getValue, row: { index }, column: { id }, table }) => {
-      const initialValue = getValue()
-      // We need to keep and update the state of the cell normally
-      const [value, setValue] = useState(initialValue)
-  
-      // When the input is blurred, we'll call our table meta's updateData function
-      const onBlur = () => {
-        table.options.meta?.updateData(index, id, value)
+    // Group cells by rowId
+    const formattedData: Record<string, TableRow> = {};
+    tableData.cells.forEach((cell) => {
+      if (!formattedData[cell.rowId]) {
+        formattedData[cell.rowId] = { rowId: cell.rowId } as TableRow;
       }
+      (formattedData[cell.rowId] as TableRow)[cell.columnId] = { id: cell.id, value: cell.value };
+    });
+
+    // Convert the grouped object into an array
+    setData(Object.values(formattedData));
+
+    setColumns(
+      tableData.columns.map((col) => ({
+        accessorKey: col.id,
+        header: col.name,
+      }))
+    );
+  }, [tableData]);
+
+  const defaultColumn: Partial<ColumnDef<TableRow>> = {
+    cell: ({ getValue, row: { index }, column: { id }, table }) => {
+      const cellData = getValue() as { id: string; value: string };
+      const [value, setValue] = useState(cellData?.value || "");
   
-      // If the initialValue is changed external, sync it up with our state
+      const onBlur = () => {
+        if (table.options.meta?.updateData) {
+          table.options.meta.updateData(index, id, value);
+        }
+  
+        // Save using the correct cell ID
+        saveCellData(cellData.id, value);
+      };
+  
       useEffect(() => {
-        setValue(initialValue)
-      }, [initialValue])
+        setValue(cellData?.value || "");
+      }, [cellData]);
   
       return (
         <input
-          className="text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+          className="text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 -m-2"
           value={value as string}
-          onChange={e => setValue(e.target.value)}
+          onChange={(e) => setValue(e.target.value)}
           onBlur={onBlur}
         />
       )
     },
-  }
+  }  
 
-  const columns: ColumnDef<TableData>[] = [
-    {
-      accessorKey: "id",
-      header: "ID",
-      cell: ({ getValue }) => <span>{getValue<number>()}</span>,
-    },
-    {
-      accessorKey: "name",
-      header: "Name",
-    },
-    {
-      accessorKey: "age",
-      header: "Age",
-    },
-    {
-      accessorKey: "role",
-      header: "Role",
-      // cell: ({ row, column, getValue }) => (
-      //   <input
-      //     type="text"
-      //     className="w-full h-full border-none outline-none bg-transparent text-left"
-      //     value={getValue<string>()}
-      //     onChange={(e) => handleInputChange(row.index, column.id, e.target.value)}
-      //   />
-      // ),
-    },
-  ];
-
-  const table = useReactTable({
-    data,
-    columns,
-    defaultColumn,
-    getCoreRowModel: getCoreRowModel(),
-  });
-
-  const saveData = async () => {
+  // Save data function
+  const saveCellData = async (cellId: string, value: string) => {
     try {
       const response = await fetch("/api/table", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ baseId, data }),
+        body: JSON.stringify({ tableId, cellId, value }),
       });
-
+  
       const result = await response.json();
       if (result.success) {
-        alert("Data inserted successfully!");
+        console.log("Cell updated successfully!");
       } else {
-        alert("Failed to insert data: " + result.error);
+        console.error("Failed to update cell:", result.error);
       }
     } catch (error) {
       console.error("Error saving data:", error);
     }
   };
 
-  useEffect(() => {
-    setSaveHandler(() => () => saveData());
-  }, [setSaveHandler]);
+  // React Table instance
+  const table = useReactTable<TableRow>({
+    data,
+    columns,
+    defaultColumn,
+    getCoreRowModel: getCoreRowModel(),
+    // Provide our updateData function to our table meta
+    meta: {
+      updateData: (rowIndex, columnId, value) => {
+        setData((prevData) =>
+          prevData.map((rowData, index) =>
+            index === rowIndex
+              ? {
+                  ...rowData,
+                  [columnId]: { 
+                    id: rowData[columnId]!.id, // Preserve ID or generate a new one
+                    value: String(value), 
+                  },
+                }
+              : rowData
+          )
+        );
+      },
+    },
+  });
 
   return (
     <div className="overflow-x-auto">
@@ -168,4 +168,6 @@ export function AirTable() {
       </table>
     </div>
   );
-}
+};
+
+export default AirTable;
