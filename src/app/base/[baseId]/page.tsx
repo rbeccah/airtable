@@ -26,7 +26,7 @@ const Base = () => {
     const fetchTables = async () => {
       try {
         const res = await fetch(`/api/base?baseId=${baseId}`);
-        const data: ApiResponse = await res.json();
+        const data: ApiResponse = await res.json() as ApiResponse;
 
         if (data.success) {
           setTables(data.tables);
@@ -40,7 +40,7 @@ const Base = () => {
       }
     };
 
-    fetchTables();
+    fetchTables().catch(console.error);
   }, [baseId]);
 
   useEffect(() => {
