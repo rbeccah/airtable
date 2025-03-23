@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
-import { useSave } from "~/app/_context/SaveContext";
 import {
   ColumnDef,
   useReactTable,
@@ -12,7 +10,7 @@ import {
   RowData,
 } from "@tanstack/react-table";
 
-declare module '@tanstack/react-table' {
+declare module "@tanstack/react-table" {
   interface TableMeta<TData extends RowData> {
     updateData: (rowIndex: number, columnId: string, value: unknown) => void;
   }
@@ -29,11 +27,12 @@ interface Props {
 }
 
 /**
+ * TableRow format:
  * {
-      rowId: "row1",
-      columnId1: { cellId: "cell1", value: "Alice" },
-      ...
-    }
+ *   rowId: "row1",
+ *   columnId1: { id: "cell1", value: "Alice" },
+ *   ...
+ * }
  */
 type TableRow = { rowId: string } & Record<string, { id: string; value: string }>;
 
@@ -45,16 +44,14 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
   useEffect(() => {
     if (!tableData) return;
 
-    // Group cells by rowId
     const formattedData: Record<string, TableRow> = {};
     tableData.cells.forEach((cell) => {
       if (!formattedData[cell.rowId]) {
         formattedData[cell.rowId] = { rowId: cell.rowId } as TableRow;
       }
-      (formattedData[cell.rowId] as TableRow)[cell.columnId] = { id: cell.id, value: cell.value };
+      formattedData[cell.rowId]![cell.columnId] = { id: cell.id, value: cell.value };
     });
 
-    // Convert the grouped object into an array
     setData(Object.values(formattedData));
 
     setColumns(
@@ -65,36 +62,43 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
     );
   }, [tableData]);
 
-  const defaultColumn: Partial<ColumnDef<TableRow>> = {
-    cell: ({ getValue, row: { index }, column: { id }, table }) => {
-      const cellData = getValue() as { id: string; value: string };
-      const [value, setValue] = useState(cellData?.value || "");
-  
-      const onBlur = () => {
-        if (table.options.meta?.updateData) {
-          table.options.meta.updateData(index, id, value);
-        }
-  
-        // Save using the correct cell ID
-        saveCellData(cellData.id, value);
-      };
-  
-      useEffect(() => {
-        setValue(cellData?.value || "");
-      }, [cellData]);
-  
-      return (
-        <input
-          className="text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 -m-2"
-          value={value as string}
-          onChange={(e) => setValue(e.target.value)}
-          onBlur={onBlur}
-        />
-      )
-    },
-  }  
+  const EditableCell: React.FC<{
+    cellData: { id: string; value: string };
+    updateData: (value: string) => void;
+  }> = ({ cellData, updateData }) => {
+    const [value, setValue] = useState(cellData.value);
 
-  // Save data function
+    const onBlur = () => {
+      updateData(value);
+      void saveCellData(cellData.id, value);
+    };
+
+    return (
+      <input
+        className="text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 -m-2"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={onBlur}
+      />
+    );
+  };
+
+  const defaultColumn: Partial<ColumnDef<TableRow>> = {
+    cell: ({ getValue, row, column, table }) => {
+      const cellData = getValue() as { id: string; value: string };
+
+      return (
+        <EditableCell
+          cellData={cellData}
+          updateData={(newValue) => {
+            table.options.meta?.updateData(row.index, column.id, newValue);
+          }}
+        />
+      );
+    },
+  };
+
+  // ✅ Fixed save function
   const saveCellData = async (cellId: string, value: string) => {
     try {
       const response = await fetch("/api/table", {
@@ -102,11 +106,9 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tableId, cellId, value }),
       });
-  
-      const result = await response.json();
-      if (result.success) {
-        console.log("Cell updated successfully!");
-      } else {
+
+      const result: { success: boolean; error?: string } = await response.json();
+      if (!result.success) {
         console.error("Failed to update cell:", result.error);
       }
     } catch (error) {
@@ -114,13 +116,12 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
     }
   };
 
-  // React Table instance
+  // ✅ Fixed `updateData` function
   const table = useReactTable<TableRow>({
     data,
     columns,
     defaultColumn,
     getCoreRowModel: getCoreRowModel(),
-    // Provide our updateData function to our table meta
     meta: {
       updateData: (rowIndex, columnId, value) => {
         setData((prevData) =>
@@ -128,9 +129,9 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
             index === rowIndex
               ? {
                   ...rowData,
-                  [columnId]: { 
-                    id: rowData[columnId]!.id, // Preserve ID or generate a new one
-                    value: String(value), 
+                  [columnId]: {
+                    id: rowData[columnId]?.id ?? "", // ✅ Safely handle undefined
+                    value: String(value),
                   },
                 }
               : rowData
@@ -142,12 +143,12 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
 
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full border border-gray-400">
-        <thead className="bg-gray-200">
+      <table className="border border-gray-400">
+        <thead className="bg-gray-100">
           {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
               {headerGroup.headers.map((header) => (
-                <th key={header.id} className="border border-gray-300 p-2">
+                <th key={header.id} className="border border-gray-300 p-1">
                   {flexRender(header.column.columnDef.header, header.getContext())}
                 </th>
               ))}
@@ -156,7 +157,7 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
         </thead>
         <tbody>
           {table.getRowModel().rows.map((row) => (
-            <tr key={row.id} className="border">
+            <tr key={row.id} className="border bg-white">
               {row.getVisibleCells().map((cell) => (
                 <td key={cell.id} className="border p-2">
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}

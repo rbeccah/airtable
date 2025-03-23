@@ -57,7 +57,9 @@ const Base = () => {
           />
         </div>
         <BaseTableNavbar />
-        <AirTable tableData={selectedTableData} tableId={selectedTableId}/>
+        <div className="bg-gray-100 h-full">
+          <AirTable tableData={selectedTableData} tableId={selectedTableId}/>
+        </div>
       </div>
     </SaveProvider>
   )
