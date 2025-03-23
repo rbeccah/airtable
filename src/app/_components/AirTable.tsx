@@ -88,7 +88,7 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
   const defaultColumn: Partial<ColumnDef<TableRow>> = {
     cell: ({ getValue, row, column, table }) => {
       const cellData = getValue() as { id: string; value: string };
-      const columnType = tableData?.columns.find((c) => c.id === column.id)?.type || "TEXT";
+      const columnType = tableData?.columns.find((c) => c.id === column.id)?.type ?? "TEXT";
 
       return (
         <EditableCell
