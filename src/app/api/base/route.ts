@@ -28,10 +28,10 @@ export async function POST(req: Request) {
         baseId: base.id,
         columns: {
           create: [
-            { name: "FirstName", type: "TEXT" },
-            { name: "LastName", type: "TEXT" },
-            { name: "Age", type: "NUMBER" },
-            { name: "Role", type: "TEXT" },
+            { name: "FirstName", type: "Text" },
+            { name: "LastName", type: "Text" },
+            { name: "Age", type: "Number" },
+            { name: "Role", type: "Text" },
           ],
         },
       },

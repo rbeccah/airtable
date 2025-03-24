@@ -3,7 +3,7 @@ import { prisma } from "~/lib/db";
 
 interface ColumnInput {
   name: string;
-  type: "TEXT" | "NUMBER";
+  type: "Text" | "Number";
 }
 
 interface CellInput {
@@ -18,14 +18,41 @@ interface TableInput {
 }
 
 interface RequestBody {
-  tableId: string | null;
-  cellId: string;
-  value: string;
+  action: string;
+  tableId?: string | null;
+  cellId?: string;
+  value?: string;
+  columnName?: string;
+  columnType?: "Text" | "Number";
 }
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json() as RequestBody;
+    const body: RequestBody & { action: string } = await req.json();
+
+    if (!body.action) {
+      return NextResponse.json({ success: false, error: "Missing action type" }, { status: 400 });
+    }
+
+    switch (body.action) {
+      case "updateCell":
+        return await updateCell(body);
+
+      case "addColumn":
+        return await addColumn(body);
+
+      default:
+        return NextResponse.json({ success: false, error: "Invalid action type" }, { status: 400 });
+    }
+  } catch (error) {
+    console.error("Error handling request:", error);
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
+  }
+}
+
+// Updates for a single cell
+async function updateCell(body: Pick<RequestBody, "tableId" | "cellId" | "value">) {
+  try {
     const { tableId, cellId, value } = body;
 
     if (!tableId || !cellId || typeof value !== "string") {
@@ -45,6 +72,51 @@ export async function POST(req: Request) {
   }
 }
 
+// Add a new column to the table
+// Add a new column and create cells for existing rows
+async function addColumn(body: Pick<RequestBody, "tableId" | "columnName" | "columnType">) {
+  try {
+    const { tableId, columnName, columnType } = body;
+
+    if (!tableId || !columnName || !columnType) {
+      return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
+    }
+
+    // Create the new column
+    const newColumn = await prisma.column.create({
+      data: {
+        tableId,
+        name: columnName,
+        type: columnType,
+      },
+    });
+
+    // Fetch all rows in the table
+    const rows = await prisma.cell.findMany({
+      where: { tableId },
+      select: { rowId: true },
+      distinct: ["rowId"], // Get unique row IDs
+    });
+
+    // Create new cells for each row in the new column
+    const newCells = await prisma.cell.createManyAndReturn({
+      data: rows.map((row) => ({
+        tableId,
+        columnId: newColumn.id,
+        rowId: row.rowId,
+        value: "", // Default empty value for new cells
+      })),
+    });
+
+    return NextResponse.json({ success: true, newColumn, newCells });
+  } catch (error) {
+    console.error("Error adding new column and cells:", error);
+    return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+
+// Gets the tables including all the columns and cells
 export async function GET(req: Request) {
   try {
     // Extract tableId from request URL
