@@ -13,30 +13,32 @@ export async function POST(req: Request) {
   const { name } = (await req.json()) as { name: string };
 
   try {
-    // Create base
-    const base = await prisma.base.create({
-      data: {
-        name,
-        user: { connect: { email: session.user.email } },
-      },
-    });
-
-    // Create table with default values inside base
-    const table = await prisma.table.create({
-      data: {
-        name: "Table 1",
-        baseId: base.id,
-        columns: {
-          create: [
-            { name: "FirstName", type: "Text" },
-            { name: "LastName", type: "Text" },
-            { name: "Age", type: "Number" },
-            { name: "Role", type: "Text" },
-          ],
+    const [base] = await prisma.$transaction([
+      prisma.base.create({
+        data: {
+          name,
+          user: { connect: { email: session.user.email } },
         },
-      },
-      include: { columns: true },
-    });
+      }),
+    ]);
+    
+    const [table, columns] = await prisma.$transaction([
+      prisma.table.create({
+        data: {
+          name: "Table 1",
+          baseId: base.id,
+        },
+      }),
+      prisma.column.createMany({
+        data: [
+          { name: "FirstName", type: "Text", tableId: base.id },
+          { name: "LastName", type: "Text", tableId: base.id },
+          { name: "Age", type: "Number", tableId: base.id },
+          { name: "Role", type: "Text", tableId: base.id },
+        ],
+      }),
+    ]);
+    
 
     // Generate 10 rows of default data using fakerjs
     const defaultData = Array.from({ length: 10 }, () => ({
@@ -51,11 +53,13 @@ export async function POST(req: Request) {
     }));
 
     // Get Column IDs
-    const columns = table.columns;
+    const columnRecords = await prisma.column.findMany({
+      where: { tableId: table.id },
+    });
 
     // Prepare Cell Data
     const fakeCells = defaultData.flatMap((row) =>
-      columns.map((col) => ({
+      columnRecords.map((col) => ({
         tableId: table.id,
         columnId: col.id,
         rowId: row.rowId,
@@ -63,10 +67,8 @@ export async function POST(req: Request) {
       }))
     );
 
-    // Insert fake cell data
-    await prisma.cell.createMany({
-      data: fakeCells,
-    });
+    // Insert fake cell data in a single batch
+    await prisma.cell.createMany({ data: fakeCells });
 
     return NextResponse.json(base);
   } catch (error) {
