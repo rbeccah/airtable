@@ -9,6 +9,9 @@ import {
   TableMeta,
   RowData,
 } from "@tanstack/react-table";
+import { MdOutlineTextFields } from "react-icons/md";
+import { FaHashtag } from "react-icons/fa";
+
 
 declare module "@tanstack/react-table" {
   interface TableMeta<TData extends RowData> {
@@ -57,7 +60,15 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
     setColumns(
       tableData.columns.map((col) => ({
         accessorKey: col.id,
-        header: col.name,
+        header: () => (
+          <div className="flex items-center gap-2">
+            {col.type === "TEXT" 
+              ? <MdOutlineTextFields className="w-4 h-4 text-gray-500" /> 
+              : <FaHashtag className="w-4 h-4 text-gray-500" />
+            }
+            {col.name}
+          </div>
+        ),
       }))
     );
   }, [tableData]);
@@ -73,14 +84,15 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
       updateData(value);
       void saveCellData(cellData.id, value);
     };
+    console.log(columnType);
 
     return (
       <input
-        className="text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 -m-2"
+        className="text-gray-900 border-transparent text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 -m-1.5"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onBlur={onBlur}
-        type={columnType === "number" ? "number" : "text"}
+        type={columnType === "NUMBER" ? "number" : "text"}
       />
     );
   };
