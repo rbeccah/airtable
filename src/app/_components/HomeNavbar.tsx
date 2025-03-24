@@ -2,6 +2,8 @@
 import { useState } from "react";
 import { signOut } from "next-auth/react"
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
+
 export function HomeNavbar() {
   const [userMenu, setUserMenu] = useState(false);
 
@@ -76,7 +78,7 @@ export function HomeNavbar() {
                                 <a 
                                   href="#" 
                                   className="block py-2 px-4 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
-                                  onClick={() => signOut({ callbackUrl: 'http://localhost:3000' })}
+                                  onClick={() => signOut({ callbackUrl: `${APP_URL}` })}
                                 >
                                   Sign out
                                 </a>
