@@ -11,7 +11,7 @@ import {
 } from "@tanstack/react-table";
 import { MdOutlineTextFields } from "react-icons/md";
 import { FaHashtag } from "react-icons/fa";
-
+import { AddColumnButton } from "~/app/_components/AddColumnButton";
 
 declare module "@tanstack/react-table" {
   interface TableMeta<TData extends RowData> {
@@ -57,8 +57,8 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
 
     setData(Object.values(formattedData));
 
-    setColumns(
-      tableData.columns.map((col) => ({
+    setColumns([
+      ...tableData.columns.map((col) => ({
         accessorKey: col.id,
         header: () => (
           <div className="flex items-center gap-2">
@@ -69,8 +69,18 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
             {col.name}
           </div>
         ),
-      }))
-    );
+      })),
+      {
+        accessorKey: "add-column",
+        header: () => (
+          <AddColumnButton />
+        ),
+        enableSorting: false,
+        enableColumnFilter: false,
+        enableResizing: false,
+        cell: () => null,
+      },
+    ]);
   }, [tableData]);
 
   const EditableCell: React.FC<{
@@ -84,8 +94,6 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
       updateData(value);
       void saveCellData(cellData.id, value);
     };
-    console.log(columnType);
-
     return (
       <input
         className="text-gray-900 border-transparent text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 -m-1.5"
@@ -171,12 +179,16 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
         </thead>
         <tbody>
           {table.getRowModel().rows.map((row) => (
-            <tr key={row.id} className="border bg-white">
-              {row.getVisibleCells().map((cell) => (
-                <td key={cell.id} className="border p-2">
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              ))}
+            <tr key={row.id} className="border border-gray-100 bg-white">
+              {row.getVisibleCells().map((cell) => {
+                if (cell.column.id === "add-column") return null;
+
+                return (
+                  <td key={cell.id} className="border p-2">
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>
