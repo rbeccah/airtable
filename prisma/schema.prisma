@@ -129,6 +129,6 @@ model Cell {
 }
 
 enum ColumnType {
-  TEXT
-  NUMBER
+  Text
+  Number
 }
