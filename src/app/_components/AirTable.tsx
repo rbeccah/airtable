@@ -1,18 +1,30 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useReducer } from "react";
 import {
   ColumnDef,
   useReactTable,
   getCoreRowModel,
   flexRender,
-  TableMeta,
   RowData,
+  getFilteredRowModel,
+  filterFns,
+  Row,
+  Column,
+  FilterFn,
+  SortingFn,
+  getSortedRowModel,
+  sortingFns,
 } from "@tanstack/react-table";
+import {
+  RankingInfo,
+  rankItem,
+  compareItems,
+} from '@tanstack/match-sorter-utils'
 import { MdOutlineTextFields } from "react-icons/md";
 import { FaHashtag } from "react-icons/fa";
 import { AddColumnButton } from "~/app/_components/AddColumnButton";
-import { Cell, Column } from "~/types/base";
+import { Cell, AirColumn } from "~/types/base";
 
 declare module "@tanstack/react-table" {
   interface TableMeta<TData extends RowData> {
@@ -20,7 +32,60 @@ declare module "@tanstack/react-table" {
   }
 }
 
-interface Props {
+declare module '@tanstack/react-table' {
+  //add fuzzy filter to the filterFns
+  interface FilterFns {
+    fuzzy: FilterFn<unknown>
+  }
+  interface FilterMeta {
+    itemRank: RankingInfo
+  }
+}
+
+declare module '@tanstack/react-table' {
+  //add fuzzy filter to the filterFns
+  interface FilterFns {
+    fuzzy: FilterFn<unknown>
+  }
+  interface FilterMeta {
+    itemRank: RankingInfo
+  }
+}
+
+// Define a custom fuzzy filter function that will apply ranking info to rows (using match-sorter utils)
+const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
+  // console.log(row);
+  // console.log(columnId);
+  // console.log("hello");
+  // Rank the item
+  const itemRank = rankItem(row.getValue(columnId), value)
+
+  // Store the itemRank info
+  addMeta({
+    itemRank,
+  })
+
+  // Return if the item should be filtered in/out
+  return itemRank.passed
+}
+
+// Define a custom fuzzy sort function that will sort by rank if the row has ranking information
+const fuzzySort: SortingFn<any> = (rowA, rowB, columnId) => {
+  let dir = 0
+
+  // Only sort by rank if the column has ranking information
+  if (rowA.columnFiltersMeta[columnId]) {
+    dir = compareItems(
+      rowA.columnFiltersMeta[columnId]?.itemRank!,
+      rowB.columnFiltersMeta[columnId]?.itemRank!
+    )
+  }
+
+  // Provide an alphanumeric fallback for when the item ranks are equal
+  return dir === 0 ? sortingFns.alphanumeric(rowA, rowB, columnId) : dir
+}
+
+interface AirTableProps {
   tableData: {
     id: string;
     name: string;
@@ -28,11 +93,13 @@ interface Props {
     cells: { id: string; columnId: string; value: string; rowId: string }[];
   } | null;
   tableId: string | null;
+  globalFilter: string; // Add globalFilter prop
+  setGlobalFilter: (value: string) => void; // Add setGlobalFilter prop
 }
 
 interface AddColumnResponse {
   success: boolean;
-  newColumn?: Column;
+  newColumn?: AirColumn;
   newCells?: Cell[];
   error?: string;
 }
@@ -47,11 +114,17 @@ interface AddColumnResponse {
  */
 type TableRow = { rowId: string } & Record<string, { id: string; value: string }>;
 
-const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
+const AirTable: React.FC<AirTableProps> = ({ tableData, tableId, globalFilter, setGlobalFilter }) => {
   const [data, setData] = useState<TableRow[]>([]);
   const [columns, setColumns] = useState<ColumnDef<TableRow>[]>([]);
+  // const [globalFilter, setGlobalFilter] = useState("");
 
-  const formatTableData = (tableData: Props["tableData"]): TableRow[] => {
+  // console.log("Columns: ")
+  // console.log(columns);
+  // console.log("Data: ");
+  // console.log(data.at(0));
+
+  const formatTableData = (tableData: AirTableProps["tableData"]): TableRow[] => {
     if (!tableData) return [];
   
     const formattedData: Record<string, TableRow> = {};
@@ -68,19 +141,39 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
   // Create columns
   const generateColumns = (columnsData: { id: string; name: string; type: string }[]) => {
     return [
-      ...columnsData.map((col) => ({
-        accessorKey: col.id,
-        header: () => (
-          <div className="flex items-center gap-2">
-            {col.type === "Text" ? (
-              <MdOutlineTextFields className="w-4 h-4 text-gray-500" />
-            ) : (
-              <FaHashtag className="w-4 h-4 text-gray-500" />
-            )}
-            {col.name}
-          </div>
-        ),
-      })),
+      ...columnsData.map((col) => {
+  
+        return {
+          accessorKey: col.id,
+          filterFn: filterFns.equalsString,
+          accessorFn: (row: TableRow) => {return row[col.id]?.value},
+          sortingFn: fuzzySort,
+          header: () => (
+            <div className="flex items-center gap-2">
+              {col.type === "Text" ? (
+                <MdOutlineTextFields className="w-4 h-4 text-gray-500" />
+              ) : (
+                <FaHashtag className="w-4 h-4 text-gray-500" />
+              )}
+              {col.name}
+            </div>
+          ),
+          cell: ({ row, column }: { row: Row<TableRow>; column: Column<TableRow> }) => {
+            const cellData = row.original[column.id]; // Get full `{ id, value }` object
+            const columnType = columnsData.find((c) => c.id === column.id)?.type ?? "Text";
+      
+            return (
+              <EditableCell
+                cellData={cellData ?? { id: "", value: "" }}
+                columnType={columnType}
+                updateData={(newValue) => {
+                  table.options.meta?.updateData(row.index, column.id, newValue);
+                }}
+              />
+            );
+          },
+        };
+      }),
       {
         accessorKey: "add-column",
         header: () => <AddColumnButton onAddColumn={handleAddColumn} />,
@@ -123,22 +216,22 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
     );
   };
 
-  const defaultColumn: Partial<ColumnDef<TableRow>> = {
-    cell: ({ getValue, row, column, table }) => {
-      const cellData = getValue() as { id: string; value: string };
-      const columnType = tableData?.columns.find((c) => c.id === column.id)?.type ?? "Text";
+  // const defaultColumn: Partial<ColumnDef<TableRow>> = {
+  //   cell: ({ getValue, row, column, table }) => {
+  //     const cellData = getValue() as { id: string; value: string };
+  //     const columnType = tableData?.columns.find((c) => c.id === column.id)?.type ?? "Text";
 
-      return (
-        <EditableCell
-          cellData={cellData}
-          columnType={columnType}
-          updateData={(newValue) => {
-            table.options.meta?.updateData(row.index, column.id, newValue);
-          }}
-        />
-      );
-    },
-  };
+  //     return (
+  //       <EditableCell
+  //         cellData={cellData}
+  //         columnType={columnType}
+  //         updateData={(newValue) => {
+  //           table.options.meta?.updateData(row.index, column.id, newValue);
+  //         }}
+  //       />
+  //     );
+  //   },
+  // };
 
   /** APIs */
   // Saving an individual cell data to db
@@ -187,7 +280,7 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
   
       const newColumn = res.newColumn; // { id: "new_col_id", name: "New Column", type: "Text" }
       const newCells = res.newCells;   // Array of new cells [{ rowId, columnId, id, value }, ...]
-  
+
       // Update columns state
       setColumns((prevColumns) => {
         const filteredColumns = prevColumns.length > 1 ? prevColumns.slice(0, -1) : prevColumns;
@@ -229,10 +322,10 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
   };
   
 
-  const table = useReactTable<TableRow>({
+  const table = useReactTable({
     data,
     columns,
-    defaultColumn,
+    // defaultColumn,
     getCoreRowModel: getCoreRowModel(),
     meta: {
       updateData: (rowIndex, columnId, value) => {
@@ -251,6 +344,16 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
         );
       },
     },
+    filterFns: {
+      fuzzy: fuzzyFilter, // Register fuzzy filter globally
+    },
+    state: {
+      globalFilter,
+    },
+    onGlobalFilterChange: setGlobalFilter, // Update filter when it changes
+    globalFilterFn: fuzzyFilter,
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
   });
 
   return (
@@ -286,5 +389,35 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
     </div>
   );
 };
+
+// A typical debounced input react component
+function DebouncedInput({
+  value: initialValue,
+  onChange,
+  debounce = 500,
+  ...props
+}: {
+  value: string | number
+  onChange: (value: string | number) => void
+  debounce?: number
+} & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'>) {
+  const [value, setValue] = useState(initialValue)
+
+  useEffect(() => {
+    setValue(initialValue)
+  }, [initialValue])
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      onChange(value)
+    }, debounce)
+
+    return () => clearTimeout(timeout)
+  }, [value])
+
+  return (
+    <input {...props} value={value} onChange={e => setValue(e.target.value)} />
+  )
+}
 
 export default AirTable;
