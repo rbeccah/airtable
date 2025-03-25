@@ -53,37 +53,25 @@ declare module '@tanstack/react-table' {
 }
 
 // Define a custom fuzzy filter function that will apply ranking info to rows (using match-sorter utils)
-const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
-  // console.log(row);
-  // console.log(columnId);
-  // console.log("hello");
-  // Rank the item
-  const itemRank = rankItem(row.getValue(columnId), value)
-
-  // Store the itemRank info
-  addMeta({
-    itemRank,
-  })
-
-  // Return if the item should be filtered in/out
-  return itemRank.passed
-}
+const fuzzyFilter: FilterFn<TableRow> = (row, columnId, value, addMeta) => {
+  const itemRank = rankItem((row.getValue(columnId)) ?? "", value as string);
+  addMeta({ itemRank });
+  return itemRank.passed;
+};
 
 // Define a custom fuzzy sort function that will sort by rank if the row has ranking information
-const fuzzySort: SortingFn<any> = (rowA, rowB, columnId) => {
-  let dir = 0
+const fuzzySort: SortingFn<TableRow> = (rowA, rowB, columnId) => {
+  let dir = 0;
 
-  // Only sort by rank if the column has ranking information
-  if (rowA.columnFiltersMeta[columnId]) {
+  if (rowA.columnFiltersMeta[columnId] && rowB.columnFiltersMeta[columnId]) {
     dir = compareItems(
-      rowA.columnFiltersMeta[columnId]?.itemRank!,
-      rowB.columnFiltersMeta[columnId]?.itemRank!
-    )
+      rowA.columnFiltersMeta[columnId]?.itemRank ?? { ranking: 0 },
+      rowB.columnFiltersMeta[columnId]?.itemRank ?? { ranking: 0 }
+    );
   }
 
-  // Provide an alphanumeric fallback for when the item ranks are equal
-  return dir === 0 ? sortingFns.alphanumeric(rowA, rowB, columnId) : dir
-}
+  return dir === 0 ? sortingFns.alphanumeric(rowA, rowB, columnId) : dir;
+};
 
 interface AirTableProps {
   tableData: {
@@ -139,41 +127,38 @@ const AirTable: React.FC<AirTableProps> = ({ tableData, tableId, globalFilter, s
   };
   
   // Create columns
-  const generateColumns = (columnsData: { id: string; name: string; type: string }[]) => {
+  const generateColumns = (columnsData: { id: string; name: string; type: string }[]): ColumnDef<TableRow>[] => {
     return [
-      ...columnsData.map((col) => {
+      ...columnsData.map((col): ColumnDef<TableRow> => ({
+        accessorKey: col.id,
+        filterFn: fuzzyFilter,
+        accessorFn: (row) => row[col.id]?.value ?? "",
+        sortingFn: fuzzySort,
+        header: () => (
+          <div className="flex items-center gap-2">
+            {col.type === "Text" ? (
+              <MdOutlineTextFields className="w-4 h-4 text-gray-500" />
+            ) : (
+              <FaHashtag className="w-4 h-4 text-gray-500" />
+            )}
+            {col.name}
+          </div>
+        ),
+        cell: ({ row, column, table }) => {
+          const cellData = row.original[column.id]; // Correctly typed access
+          const columnType = columnsData.find((c) => c.id === column.id)?.type ?? "Text";
   
-        return {
-          accessorKey: col.id,
-          filterFn: filterFns.equalsString,
-          accessorFn: (row: TableRow) => {return row[col.id]?.value},
-          sortingFn: fuzzySort,
-          header: () => (
-            <div className="flex items-center gap-2">
-              {col.type === "Text" ? (
-                <MdOutlineTextFields className="w-4 h-4 text-gray-500" />
-              ) : (
-                <FaHashtag className="w-4 h-4 text-gray-500" />
-              )}
-              {col.name}
-            </div>
-          ),
-          cell: ({ row, column }: { row: Row<TableRow>; column: Column<TableRow> }) => {
-            const cellData = row.original[column.id]; // Get full `{ id, value }` object
-            const columnType = columnsData.find((c) => c.id === column.id)?.type ?? "Text";
-      
-            return (
-              <EditableCell
-                cellData={cellData ?? { id: "", value: "" }}
-                columnType={columnType}
-                updateData={(newValue) => {
-                  table.options.meta?.updateData(row.index, column.id, newValue);
-                }}
-              />
-            );
-          },
-        };
-      }),
+          return (
+            <EditableCell
+              cellData={cellData ?? { id: "", value: "" }}
+              columnType={columnType}
+              updateData={(newValue) => {
+                table.options.meta?.updateData?.(row.index, column.id, newValue);
+              }}
+            />
+          );
+        },
+      })),
       {
         accessorKey: "add-column",
         header: () => <AddColumnButton onAddColumn={handleAddColumn} />,
