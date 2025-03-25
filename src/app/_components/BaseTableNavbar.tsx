@@ -4,8 +4,9 @@ import { Button } from "flowbite-react";
 import { FaRegEyeSlash } from "react-icons/fa6";
 import { IoFilterOutline } from "react-icons/io5";
 import { BiSortAlt2 } from "react-icons/bi";
-import { FaSave } from "react-icons/fa";
+import { MdOutlinePlaylistAdd } from "react-icons/md";
 import { useSave } from "~/app/_context/SaveContext";
+import { AddDefaultRows } from "~/app/_components/AddDefaultRows";
 
 export function BaseTableNavbar() {
   const { triggerSave } = useSave();
@@ -27,6 +28,7 @@ export function BaseTableNavbar() {
                 <BiSortAlt2 className="mr-2 h-5 w-5" />
                 Sort
               </Button>
+              <AddDefaultRows />
               </div>
               <div className="ml-auto flex items-center lg:order-2">
                 <form action="#" method="GET" className="hidden lg:block lg:pl-2">

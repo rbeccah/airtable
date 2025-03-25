@@ -51,6 +51,7 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
   const [data, setData] = useState<TableRow[]>([]);
   const [columns, setColumns] = useState<ColumnDef<TableRow>[]>([]);
 
+  // Format table data from backend into TableRow
   const formatTableData = (tableData: Props["tableData"]): TableRow[] => {
     if (!tableData) return [];
   
@@ -65,7 +66,7 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
     return Object.values(formattedData);
   };
   
-  // Create columns
+  // Create column header from columns data
   const generateColumns = (columnsData: { id: string; name: string; type: string }[]) => {
     return [
       ...columnsData.map((col) => ({
@@ -92,7 +93,6 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
     ];
   };
 
-  // Format cell data into structured row-based format
   useEffect(() => {
     if (!tableData) return;
   
@@ -123,6 +123,7 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
     );
   };
 
+  // For each cell with column.id, create cells in column
   const defaultColumn: Partial<ColumnDef<TableRow>> = {
     cell: ({ getValue, row, column, table }) => {
       const cellData = getValue() as { id: string; value: string };
@@ -164,6 +165,7 @@ const AirTable: React.FC<Props> = ({ tableData, tableId }) => {
     }
   };
 
+  // Adding a column to db
   const handleAddColumn = async (columnName: string, columnType: string) => {
     if (!tableData) return;
   

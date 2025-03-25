@@ -52,7 +52,7 @@ const Base = () => {
 
   return (
     <SaveProvider>
-      <div className="h-screen flex flex-col">
+      <div className="h-screen flex flex-col bg-gray-100">
         <div className="fixed top-0 left-0 w-full z-50">
           <BaseNavbar />
         </div>
@@ -64,9 +64,10 @@ const Base = () => {
           />
         </div>
         <BaseTableNavbar />
-        <div className="bg-gray-100 h-full">
+        <div className="">
           <AirTable tableData={selectedTableData} tableId={selectedTableId}/>
         </div>
+        <div>hello</div>
       </div>
     </SaveProvider>
   );
