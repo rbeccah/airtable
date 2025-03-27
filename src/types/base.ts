@@ -15,7 +15,7 @@ export interface Table {
   baseId: string;
 }
 
-export interface Column {
+export interface AirColumn {
   id: string;
   name: string;
   type: string;
