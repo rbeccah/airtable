@@ -30,7 +30,7 @@ export async function POST(req: Request) {
           create: [
             { name: "FirstName", type: "Text" },
             { name: "LastName", type: "Text" },
-            { name: "Age", type: "Number" },
+            // { name: "Age", type: "Number" },
             { name: "Role", type: "Text" },
           ],
         },
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       values: {
         FirstName: faker.person.firstName(),
         LastName: faker.person.lastName(),
-        Age: faker.number.int({ min: 20, max: 60 }),
+        // Age: faker.number.int({ min: 20, max: 60 }),
         Role: faker.person.jobTitle(),
       },
     }));

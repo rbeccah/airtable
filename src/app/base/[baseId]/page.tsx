@@ -21,6 +21,7 @@ const Base = () => {
   const [tables, setTables] = useState<Table[]>([]);
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [selectedTableData, setSelectedTableData] = useState<Table | null>(null);
+  const [globalFilter, setGlobalFilter] = useState("");
 
   useEffect(() => {
     const fetchTables = async () => {
@@ -63,9 +64,14 @@ const Base = () => {
             setSelectedTableId={setSelectedTableId}
           />
         </div>
-        <BaseTableNavbar />
-        <div className="">
-          <AirTable tableData={selectedTableData} tableId={selectedTableId}/>
+        <BaseTableNavbar globalFilter={globalFilter} setGlobalFilter={setGlobalFilter} />
+        <div className="bg-gray-100 h-full">
+        <AirTable
+            tableData={selectedTableData}
+            tableId={selectedTableId}
+            globalFilter={globalFilter}
+            setGlobalFilter={setGlobalFilter}
+          />
         </div>
         <div>hello</div>
       </div>
