@@ -12,8 +12,14 @@ import {
 } from "flowbite-react";
 import { MdOutlinePlaylistAdd } from "react-icons/md"
 import { IoMdAdd } from "react-icons/io";
+import { Cell } from "~/types/base";
 
-export function AddDefaultRows() {
+interface AddDefaultRowsProps {
+  tableId: string | null;
+  handleNewRow: (newRow: Cell[]) => void;
+}
+
+export function AddDefaultRows({ tableId, handleNewRow }: AddDefaultRowsProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [numRows, setNumRows] = useState(0);
 
@@ -43,6 +49,23 @@ export function AddDefaultRows() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (numRows <= 0) return;
+
+    const response = await fetch("/api/table", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "addRow",
+        tableId: tableId,
+      }),
+    });
+
+    const result = await response.json();
+    if (result.success && result.newCells) {
+      handleNewRow(result.newCells); // Update table when new row is added
+    }
+
+    setIsDropdownOpen(false);
   };
 
   return (

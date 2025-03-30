@@ -83,6 +83,7 @@ interface AirTableProps {
   tableId: string | null;
   globalFilter: string; // Add globalFilter prop
   setGlobalFilter: (value: string) => void; // Add setGlobalFilter prop
+  newRowCells: Cell[]
 }
 
 interface AddColumnResponse {
@@ -102,21 +103,29 @@ interface AddColumnResponse {
  */
 type TableRow = { rowId: string } & Record<string, { id: string; value: string }>;
 
-const AirTable: React.FC<AirTableProps> = ({ tableData, tableId, globalFilter, setGlobalFilter }) => {
+const AirTable: React.FC<AirTableProps> = ({ tableData, tableId, globalFilter, setGlobalFilter, newRowCells }) => {
   const [data, setData] = useState<TableRow[]>([]);
   const [columns, setColumns] = useState<ColumnDef<TableRow>[]>([]);
-  // const [globalFilter, setGlobalFilter] = useState("");
 
-  // console.log("Columns: ")
-  // console.log(columns);
-  // console.log("Data: ");
-  // console.log(data.at(0));
+  useEffect(() => {
+    if (!tableData) return;
+    
+    // Format and set initial table data
+    setData(formatTableData(tableData.cells));
+    setColumns(generateColumns(tableData.columns));
+  }, [tableData]);
 
-  const formatTableData = (tableData: AirTableProps["tableData"]): TableRow[] => {
-    if (!tableData) return [];
-  
+  useEffect(() => {
+    if (newRowCells.length > 0) {
+      // Format and add new rows to the data
+      const rowData = formatTableData(newRowCells);
+      setData(prevData => [...prevData, ...rowData]);
+    }
+  }, [newRowCells]);
+
+  const formatTableData = (tableCells: Cell[]): TableRow[] => {
     const formattedData: Record<string, TableRow> = {};
-    tableData.cells.forEach((cell) => {
+    tableCells.forEach((cell) => {
       if (!formattedData[cell.rowId]) {
         formattedData[cell.rowId] = { rowId: cell.rowId } as TableRow;
       }
@@ -170,13 +179,6 @@ const AirTable: React.FC<AirTableProps> = ({ tableData, tableId, globalFilter, s
     ];
   };
 
-  useEffect(() => {
-    if (!tableData) return;
-  
-    setData(formatTableData(tableData));
-    setColumns(generateColumns(tableData.columns));
-  }, [tableData]);
-
   // Create editable cell
   const EditableCell: React.FC<{
     cellData: { id: string; value: string };
@@ -184,7 +186,6 @@ const AirTable: React.FC<AirTableProps> = ({ tableData, tableId, globalFilter, s
     updateData: (value: string) => void;
   }> = ({ cellData, columnType, updateData }) => {
     const [value, setValue] = useState(cellData.value);
-    console.log(value);
 
     const onBlur = () => {
       updateData(value);
@@ -266,7 +267,6 @@ const AirTable: React.FC<AirTableProps> = ({ tableData, tableId, globalFilter, s
   
       const newColumn = res.newColumn; // { id: "new_col_id", name: "New Column", type: "Text" }
       const newCells = res.newCells;   // Array of new cells [{ rowId, columnId, id, value }, ...]
-      console.log(newCells);
 
       // Update columns state
       setColumns((prevColumns) => {
@@ -308,6 +308,10 @@ const AirTable: React.FC<AirTableProps> = ({ tableData, tableId, globalFilter, s
     }
   };
   
+  // Adding new row to db
+  const handleNewRow = (newRow: TableRow) => {
+    setData((prevData) => [...prevData, newRow]); // Append new row
+  };
 
   const table = useReactTable({
     data,

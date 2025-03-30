@@ -4,6 +4,7 @@ import { authOptions } from "~/lib/auth";
 import { prisma } from "~/lib/db";
 import { faker } from "@faker-js/faker";
 
+// Create base with table and default data
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) {
@@ -74,6 +75,7 @@ export async function POST(req: Request) {
   }
 }
 
+// Fetch all tables with given baseId 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const baseId = searchParams.get("baseId");

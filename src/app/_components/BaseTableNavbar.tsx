@@ -7,8 +7,16 @@ import { BiSortAlt2 } from "react-icons/bi";
 import { MdOutlinePlaylistAdd } from "react-icons/md";
 import { useSave } from "~/app/_context/SaveContext";
 import { AddDefaultRows } from "~/app/_components/AddDefaultRows";
+import { Cell } from "~/types/base";
 
-export function BaseTableNavbar({ globalFilter, setGlobalFilter }: { globalFilter: string; setGlobalFilter: (value: string) => void }) {
+interface BaseTableNavbarProps {
+  tableId: string | null;
+  globalFilter: string;
+  setGlobalFilter: (value: string) => void;
+  handleNewRow: (newRow: Cell[]) => void;
+}
+
+export function BaseTableNavbar({ tableId, globalFilter, setGlobalFilter, handleNewRow }: BaseTableNavbarProps) {
   const { triggerSave } = useSave();
 
   return (
@@ -28,7 +36,7 @@ export function BaseTableNavbar({ globalFilter, setGlobalFilter }: { globalFilte
                 <BiSortAlt2 className="mr-2 h-5 w-5" />
                 Sort
               </Button>
-              <AddDefaultRows />
+              <AddDefaultRows tableId={tableId} handleNewRow={handleNewRow} />
               </div>
               <div className="ml-auto flex items-center lg:order-2">
                 <label htmlFor="topbar-search" className="sr-only">Search</label>
