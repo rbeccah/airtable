@@ -6,8 +6,8 @@ import { SaveProvider } from "~/app/_context/SaveContext";
 import { BaseNavbar } from "~/app/_components/BaseNavbar";
 import BaseTableTabsBar from "~/app/_components/BaseTableTabsBar";
 import { BaseTableNavbar } from "~/app/_components/BaseTableNavbar";
-import AirTable from "~/app/_components/AirTable";
-import { Table } from "~/types/base";
+import { AirTable } from "~/app/_components/AirTable";
+import { Cell, Table } from "~/types/base";
 
 interface ApiResponse {
   success: boolean;
@@ -22,6 +22,7 @@ const Base = () => {
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [selectedTableData, setSelectedTableData] = useState<Table | null>(null);
   const [globalFilter, setGlobalFilter] = useState("");
+  const [newCells, setNewCells] = useState<Cell[]>([]);
 
   useEffect(() => {
     const fetchTables = async () => {
@@ -51,9 +52,13 @@ const Base = () => {
     }
   }, [selectedTableId, tables]);
 
+  const handleNewRow = (newCells: Cell[]) => {
+    setNewCells(newCells);
+  };
+
   return (
     <SaveProvider>
-      <div className="h-screen flex flex-col">
+      <div className="h-screen flex flex-col bg-gray-100">
         <div className="fixed top-0 left-0 w-full z-50">
           <BaseNavbar />
         </div>
@@ -64,15 +69,22 @@ const Base = () => {
             setSelectedTableId={setSelectedTableId}
           />
         </div>
-        <BaseTableNavbar globalFilter={globalFilter} setGlobalFilter={setGlobalFilter} />
+        <BaseTableNavbar 
+          tableId={selectedTableId}
+          globalFilter={globalFilter} 
+          setGlobalFilter={setGlobalFilter}
+          handleNewRow={handleNewRow}
+        />
         <div className="bg-gray-100 h-full">
         <AirTable
             tableData={selectedTableData}
             tableId={selectedTableId}
             globalFilter={globalFilter}
             setGlobalFilter={setGlobalFilter}
+            newRowCells={newCells}
           />
         </div>
+        <div>hello</div>
       </div>
     </SaveProvider>
   );

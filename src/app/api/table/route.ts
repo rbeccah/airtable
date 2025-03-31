@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "~/lib/db";
+import { faker } from "@faker-js/faker";
 
 interface ColumnInput {
   name: string;
@@ -24,6 +25,7 @@ interface RequestBody {
   value?: string;
   columnName?: string;
   columnType?: "Text" | "Number";
+  numRows?: number
 }
 
 export async function POST(req: Request) {
@@ -40,6 +42,9 @@ export async function POST(req: Request) {
 
       case "addColumn":
         return await addColumn(body);
+
+      case "addRow":
+        return await addRow(body);
 
       default:
         return NextResponse.json({ success: false, error: "Invalid action type" }, { status: 400 });
@@ -72,7 +77,6 @@ async function updateCell(body: Pick<RequestBody, "tableId" | "cellId" | "value"
   }
 }
 
-// Add a new column to the table
 // Add a new column and create cells for existing rows
 async function addColumn(body: Pick<RequestBody, "tableId" | "columnName" | "columnType">) {
   try {
@@ -112,6 +116,72 @@ async function addColumn(body: Pick<RequestBody, "tableId" | "columnName" | "col
   } catch (error) {
     console.error("Error adding new column and cells:", error);
     return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+// Adds row to the table 
+async function addRow(body: Pick<RequestBody, "tableId" | "numRows">) {
+  try {
+    const { tableId, numRows } = body;
+
+    if (!tableId || !numRows) {
+      return NextResponse.json({ success: false, error: "Missing tableId or number of rows" }, { status: 400 });
+    }
+
+    // Fetch all columns in the table, including column names
+    const columns = await prisma.column.findMany({
+      where: { tableId },
+      select: { id: true, name: true }, // Include `name` to check column names
+    });
+
+    if (columns.length === 0) {
+      return NextResponse.json({ success: false, error: "No columns found for the table" }, { status: 400 });
+    }
+
+    const result = await prisma.$transaction(async (prisma) => {
+      const allNewCells = [];
+      
+      for (let i = 0; i < numRows; i++) {
+        const rowId = crypto.randomUUID();
+        
+        // Create cells for each column in this row
+        const rowCells = await prisma.cell.createManyAndReturn({
+          data: columns.map((column) => ({
+            tableId,
+            columnId: column.id,
+            rowId,
+            value: generateDefaultValue(column.name), // Better to use type than name
+          })),
+        });
+        
+        allNewCells.push(...rowCells);
+      }
+      
+      return allNewCells;
+    });
+
+    return NextResponse.json({ 
+      success: true, 
+      newCells: result,
+      message: `Successfully added ${numRows} row(s)`
+    });
+  } catch (error) {
+    console.error("Error adding row:", error);
+    return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+// Function to generate default values based on column name
+function generateDefaultValue(columnName: string): string {
+  switch (columnName) {
+    case "FirstName":
+      return faker.person.firstName();
+    case "LastName":
+      return faker.person.lastName();
+    case "Role":
+      return faker.person.jobTitle();
+    default:
+      return ""; // Empty by default for other columns
   }
 }
 
