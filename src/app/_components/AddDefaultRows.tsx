@@ -56,7 +56,8 @@ export function AddDefaultRows({ tableId, handleNewRow }: AddDefaultRowsProps) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         action: "addRow",
-        tableId: tableId,
+        tableId,
+        numRows,
       }),
     });
 
@@ -89,6 +90,8 @@ export function AddDefaultRows({ tableId, handleNewRow }: AddDefaultRowsProps) {
                 type="number" 
                 className="w-full font-normal" 
                 placeholder="Number of rows"
+                min={1}
+                max={10000}
                 onKeyDown={(e) => e.stopPropagation()}
                 onChange={(e) => setNumRows(parseInt(e.target.value))}
                 required 

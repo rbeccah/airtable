@@ -25,6 +25,7 @@ interface RequestBody {
   value?: string;
   columnName?: string;
   columnType?: "Text" | "Number";
+  numRows?: number
 }
 
 export async function POST(req: Request) {
@@ -119,12 +120,12 @@ async function addColumn(body: Pick<RequestBody, "tableId" | "columnName" | "col
 }
 
 // Adds row to the table 
-async function addRow(body: Pick<RequestBody, "tableId">) {
+async function addRow(body: Pick<RequestBody, "tableId" | "numRows">) {
   try {
-    const { tableId } = body;
+    const { tableId, numRows } = body;
 
-    if (!tableId) {
-      return NextResponse.json({ success: false, error: "Missing tableId" }, { status: 400 });
+    if (!tableId || !numRows) {
+      return NextResponse.json({ success: false, error: "Missing tableId or number of rows" }, { status: 400 });
     }
 
     // Fetch all columns in the table, including column names
@@ -136,23 +137,34 @@ async function addRow(body: Pick<RequestBody, "tableId">) {
     if (columns.length === 0) {
       return NextResponse.json({ success: false, error: "No columns found for the table" }, { status: 400 });
     }
-    console.log(columns);
 
-    // Generate a new rowId
-    const rowId = crypto.randomUUID();
-
-    // Generate default values for specific columns
-    const newCells = await prisma.cell.createManyAndReturn({
-      data: columns.map((column) => ({
-        tableId,
-        columnId: column.id,
-        rowId,
-        value: generateDefaultValue(column.name), // Assign default values
-      })),
+    const result = await prisma.$transaction(async (prisma) => {
+      const allNewCells = [];
+      
+      for (let i = 0; i < numRows; i++) {
+        const rowId = crypto.randomUUID();
+        
+        // Create cells for each column in this row
+        const rowCells = await prisma.cell.createManyAndReturn({
+          data: columns.map((column) => ({
+            tableId,
+            columnId: column.id,
+            rowId,
+            value: generateDefaultValue(column.name), // Better to use type than name
+          })),
+        });
+        
+        allNewCells.push(...rowCells);
+      }
+      
+      return allNewCells;
     });
-    console.log(newCells);
 
-    return NextResponse.json({ success: true, newCells });
+    return NextResponse.json({ 
+      success: true, 
+      newCells: result,
+      message: `Successfully added ${numRows} row(s)`
+    });
   } catch (error) {
     console.error("Error adding row:", error);
     return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });

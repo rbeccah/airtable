@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
   ColumnDef,
   useReactTable,
@@ -14,6 +14,8 @@ import {
   sortingFns,
 } from "@tanstack/react-table";
 import { RankingInfo, rankItem, compareItems } from '@tanstack/match-sorter-utils';
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { MdOutlineTextFields } from "react-icons/md";
 import { FaHashtag } from "react-icons/fa";
 import { AddColumnButton } from "~/app/_components/AddColumnButton";
@@ -57,6 +59,8 @@ interface AddColumnResponse {
   newCells?: Cell[];
   error?: string;
 }
+
+const PAGE_SIZE = 50; // Number of rows to fetch at a time
 
 // Utility Functions
 const fuzzyFilter: FilterFn<TableRow> = (row, columnId, value, addMeta) => {
@@ -143,6 +147,10 @@ export const AirTable: React.FC<AirTableProps> = ({
 }) => {
   const [data, setData] = useState<TableRow[]>([]);
   const [columns, setColumns] = useState<ColumnDef<TableRow>[]>([]);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+
+  // Virtualised Infinite Scrolling
+  
 
   // API Functions
   const saveCellData = async (cellId: string, value: string) => {
