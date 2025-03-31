@@ -19,6 +19,12 @@ interface AddDefaultRowsProps {
   handleNewRow: (newRow: Cell[]) => void;
 }
 
+interface ApiResponse {
+  success: boolean;
+  newCells?: Cell[];
+  error?: string;
+}
+
 export function AddDefaultRows({ tableId, handleNewRow }: AddDefaultRowsProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [numRows, setNumRows] = useState(0);
@@ -61,7 +67,7 @@ export function AddDefaultRows({ tableId, handleNewRow }: AddDefaultRowsProps) {
       }),
     });
 
-    const result = await response.json();
+    const result = await response.json() as ApiResponse;
     if (result.success && result.newCells) {
       handleNewRow(result.newCells); // Update table when new row is added
     }

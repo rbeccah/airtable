@@ -60,6 +60,11 @@ interface AddColumnResponse {
   error?: string;
 }
 
+interface ApiResponse {
+  success: boolean;
+  error?: string;
+}
+
 const PAGE_SIZE = 50; // Number of rows to fetch at a time
 
 // Utility Functions
@@ -150,7 +155,7 @@ export const AirTable: React.FC<AirTableProps> = ({
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
   // Virtualised Infinite Scrolling
-  
+
 
   // API Functions
   const saveCellData = async (cellId: string, value: string) => {
@@ -165,8 +170,8 @@ export const AirTable: React.FC<AirTableProps> = ({
           value 
         }),
       });
-
-      const result = await response.json();
+  
+      const result: ApiResponse = await response.json();
       if (!result.success) {
         console.error("Failed to update cell:", result.error);
       }
