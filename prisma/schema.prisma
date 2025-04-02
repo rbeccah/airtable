@@ -100,7 +100,7 @@ model Table {
   baseId    String
   base      Base     @relation(fields: [baseId], references: [id], onDelete: Cascade, name: "BaseToTable")
   columns   Column[] @relation("TableToColumn")
-  cells     Cell[]   @relation("TableToCell")
+  rows      Row[]   @relation("TableToRow")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -116,16 +116,28 @@ model Column {
   updatedAt DateTime @updatedAt
 }
 
+model Row {
+  id        String   @id @default(cuid())
+  tableId   String
+  table     Table    @relation(fields: [tableId], references: [id], onDelete: Cascade, name: "TableToRow")
+  cells     Cell[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([tableId])
+}
+
 model Cell {
   id        String   @id @default(cuid())
   value     String
-  tableId   String
-  table     Table    @relation(fields: [tableId], references: [id], onDelete: Cascade, name: "TableToCell")
   columnId  String
   column    Column   @relation(fields: [columnId], references: [id], onDelete: Cascade, name: "ColumnToCell")
-  rowId     String   @default(cuid())
+  rowId     String
+  row       Row      @relation(fields: [rowId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  
+  @@unique([columnId, rowId]) // Each cell is unique per column/row
+  @@index([rowId])
 }
 
 enum ColumnType {

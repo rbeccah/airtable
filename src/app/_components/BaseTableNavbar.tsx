@@ -7,13 +7,13 @@ import { BiSortAlt2 } from "react-icons/bi";
 import { MdOutlinePlaylistAdd } from "react-icons/md";
 import { useSave } from "~/app/_context/SaveContext";
 import { AddDefaultRows } from "~/app/_components/AddDefaultRows";
-import { Cell } from "~/types/base";
+import { AirRow, Cell } from "~/types/base";
 
 interface BaseTableNavbarProps {
   tableId: string | null;
   globalFilter: string;
   setGlobalFilter: (value: string) => void;
-  handleNewRow: (newRow: Cell[]) => void;
+  handleNewRow: (newRow: AirRow[]) => void;
 }
 
 export function BaseTableNavbar({ tableId, globalFilter, setGlobalFilter, handleNewRow }: BaseTableNavbarProps) {

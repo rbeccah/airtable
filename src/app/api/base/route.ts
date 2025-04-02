@@ -22,7 +22,7 @@ export async function POST(req: Request) {
       },
     });
 
-    // Create table with default values inside base
+    // Create table with default columns
     const table = await prisma.table.create({
       data: {
         name: "Table 1",
@@ -31,7 +31,6 @@ export async function POST(req: Request) {
           create: [
             { name: "FirstName", type: "Text" },
             { name: "LastName", type: "Text" },
-            // { name: "Age", type: "Number" },
             { name: "Role", type: "Text" },
           ],
         },
@@ -41,37 +40,43 @@ export async function POST(req: Request) {
 
     // Generate 10 rows of default data using fakerjs
     const defaultData = Array.from({ length: 10 }, () => ({
-      tableId: table.id,
-      rowId: faker.string.uuid(),
-      values: {
-        FirstName: faker.person.firstName(),
-        LastName: faker.person.lastName(),
-        // Age: faker.number.int({ min: 20, max: 60 }),
-        Role: faker.person.jobTitle(),
-      },
+      FirstName: faker.person.firstName(),
+      LastName: faker.person.lastName(),
+      Role: faker.person.jobTitle(),
     }));
 
-    // Get Column IDs
-    const columns = table.columns;
+    // Create rows and cells in a transaction
+    await prisma.$transaction(async (prisma) => {
+      for (const data of defaultData) {
+        // First create the row
+        const row = await prisma.row.create({
+          data: {
+            tableId: table.id,
+          },
+        });
 
-    // Prepare Cell Data
-    const fakeCells = defaultData.flatMap((row) =>
-      columns.map((col) => ({
-        tableId: table.id,
-        columnId: col.id,
-        rowId: row.rowId,
-        value: String(row.values[col.name as keyof typeof row.values] || ""),
-      }))
-    );
-
-    // Insert fake cell data
-    await prisma.cell.createMany({
-      data: fakeCells,
+        // Then create cells for each column
+        await Promise.all(
+          table.columns.map((column) =>
+            prisma.cell.create({
+              data: {
+                columnId: column.id,
+                rowId: row.id,
+                value: String(data[column.name as keyof typeof data] || ""),
+              },
+            })
+          )
+        );
+      }
     });
 
     return NextResponse.json(base);
   } catch (error) {
-    return NextResponse.json({ error: "Failed to create base" }, { status: 500 });
+    console.error("Error creating base:", error);
+    return NextResponse.json(
+      { error: "Failed to create base" },
+      { status: 500 }
+    );
   }
 }
 
@@ -85,18 +90,41 @@ export async function GET(req: Request) {
   }
 
   try {
-    // Fetch tables with their columns and cells
+    // Fetch tables with their columns, rows, and cells
     const tables = await prisma.table.findMany({
       where: { baseId },
       include: {
         columns: true,
-        cells: true,
+        rows: {
+          include: {
+            cells: {
+              include: {
+                column: true,
+              },
+            },
+          },
+        },
       },
     });
 
-    return NextResponse.json({ success: true, tables });
+    // Format the data for easier consumption by the frontend
+    const formattedTables = tables.map((table) => ({
+      ...table,
+      cells: table.rows.flatMap((row) =>
+        row.cells.map((cell) => ({
+          ...cell,
+          rowId: row.id,
+          tableId: table.id,
+        }))
+      ),
+    }));
+
+    return NextResponse.json({ success: true, tables: formattedTables });
   } catch (error) {
     console.error("Error fetching tables:", error);
-    return NextResponse.json({ error: "Failed to fetch tables" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch tables" },
+      { status: 500 }
+    );
   }
 }

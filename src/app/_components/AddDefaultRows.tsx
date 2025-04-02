@@ -12,16 +12,16 @@ import {
 } from "flowbite-react";
 import { MdOutlinePlaylistAdd } from "react-icons/md"
 import { IoMdAdd } from "react-icons/io";
-import { Cell } from "~/types/base";
+import { AirRow, Cell } from "~/types/base";
 
 interface AddDefaultRowsProps {
   tableId: string | null;
-  handleNewRow: (newRow: Cell[]) => void;
+  handleNewRow: (newRow: AirRow[]) => void;
 }
 
 interface ApiResponse {
   success: boolean;
-  newCells?: Cell[];
+  newRows?: AirRow[];
   error?: string;
 }
 
@@ -68,8 +68,8 @@ export function AddDefaultRows({ tableId, handleNewRow }: AddDefaultRowsProps) {
     });
 
     const result = await response.json() as ApiResponse;
-    if (result.success && result.newCells) {
-      handleNewRow(result.newCells); // Update table when new row is added
+    if (result.success && result.newRows) {
+      handleNewRow(result.newRows); // Update table when new row is added
     }
 
     setIsDropdownOpen(false);

@@ -7,7 +7,7 @@ import { BaseNavbar } from "~/app/_components/BaseNavbar";
 import BaseTableTabsBar from "~/app/_components/BaseTableTabsBar";
 import { BaseTableNavbar } from "~/app/_components/BaseTableNavbar";
 import { AirTable } from "~/app/_components/AirTable";
-import { Cell, Table } from "~/types/base";
+import { AirRow, Cell, Table } from "~/types/base";
 
 interface ApiResponse {
   success: boolean;
@@ -22,7 +22,8 @@ const Base = () => {
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [selectedTableData, setSelectedTableData] = useState<Table | null>(null);
   const [globalFilter, setGlobalFilter] = useState("");
-  const [newCells, setNewCells] = useState<Cell[]>([]);
+  const [newCells, setNewCells] = useState<AirRow[]>([]);
+  console.log(selectedTableData);
 
   useEffect(() => {
     const fetchTables = async () => {
@@ -52,7 +53,7 @@ const Base = () => {
     }
   }, [selectedTableId, tables]);
 
-  const handleNewRow = (newCells: Cell[]) => {
+  const handleNewRow = (newCells: AirRow[]) => {
     setNewCells(newCells);
   };
 
@@ -81,7 +82,7 @@ const Base = () => {
             tableId={selectedTableId}
             globalFilter={globalFilter}
             setGlobalFilter={setGlobalFilter}
-            newRowCells={newCells}
+            newRows={newCells}
           />
         </div>
         <div>hello</div>

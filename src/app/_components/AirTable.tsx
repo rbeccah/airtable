@@ -19,7 +19,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { MdOutlineTextFields } from "react-icons/md";
 import { FaHashtag } from "react-icons/fa";
 import { AddColumnButton } from "~/app/_components/AddColumnButton";
-import { Cell, AirColumn } from "~/types/base";
+import { Cell, AirColumn, Table, AirRow } from "~/types/base";
 
 // Type Declarations
 declare module "@tanstack/react-table" {
@@ -36,21 +36,26 @@ declare module "@tanstack/react-table" {
   }
 }
 
-type TableRow = { 
-  rowId: string 
-} & Record<string, { id: string; value: string }>;
+/**
+ * TableRow format:
+ * {
+ *   rowId: "row1",
+ *   columnId1: { id: "cell1", value: "Alice" },
+ *   ...
+ * }
+ */
+type TableRow = {
+  rowId: string;
+} & {
+  [columnId: string]: { id: string; value: string };
+};
 
 interface AirTableProps {
-  tableData: {
-    id: string;
-    name: string;
-    columns: { id: string; name: string; type: string }[];
-    cells: Cell[];
-  } | null;
+  tableData: Table | null;
   tableId: string | null;
   globalFilter: string;
   setGlobalFilter: (value: string) => void;
-  newRowCells: Cell[];
+  newRows: AirRow[];
 }
 
 interface AddColumnResponse {
@@ -87,16 +92,20 @@ const fuzzySort: SortingFn<TableRow> = (rowA, rowB, columnId) => {
   return dir === 0 ? sortingFns.alphanumeric(rowA, rowB, columnId) : dir;
 };
 
-const formatTableData = (tableCells: Cell[]): TableRow[] => {
-  const formattedData: Record<string, TableRow> = {};
-  tableCells.forEach((cell) => {
-    if (!formattedData[cell.rowId]) {
-      formattedData[cell.rowId] = { rowId: cell.rowId } as TableRow;
-    }
-    formattedData[cell.rowId]![cell.columnId] = { id: cell.id, value: cell.value };
+const formatTableData = (rows: AirRow[]): TableRow[] => {
+  return rows.map(row => {
+    // Create a new object with rowId and the Record type
+    const tableRow = {
+      rowId: row.id,
+      ...Object.fromEntries(
+        row.cells.map(cell => [
+          cell.columnId, 
+          { id: cell.id, value: cell.value }
+        ])
+    )} as unknown as TableRow;
+    
+    return tableRow;
   });
-
-  return Object.values(formattedData);
 };
 
 // Sub-components
@@ -148,13 +157,15 @@ export const AirTable: React.FC<AirTableProps> = ({
   tableId, 
   globalFilter, 
   setGlobalFilter, 
-  newRowCells 
+  newRows 
 }) => {
   const [data, setData] = useState<TableRow[]>([]);
   const [columns, setColumns] = useState<ColumnDef<TableRow>[]>([]);
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
   // Virtualised Infinite Scrolling
+  // tRPC infinite query
+
 
 
   // API Functions
@@ -275,15 +286,16 @@ export const AirTable: React.FC<AirTableProps> = ({
   // Effects
   useEffect(() => {
     if (!tableData) return;
-    setData(formatTableData(tableData.cells));
+    console.log(tableData);
+    setData(formatTableData(tableData.rows));
     setColumns(generateColumns(tableData.columns));
   }, [tableData]);
 
   useEffect(() => {
-    if (newRowCells.length > 0) {
-      setData(prev => [...prev, ...formatTableData(newRowCells)]);
+    if (newRows.length > 0) {
+      setData(prev => [...prev, ...formatTableData(newRows)]);
     }
-  }, [newRowCells]);
+  }, [newRows]);
 
   // Table Configuration
   const table = useReactTable({
