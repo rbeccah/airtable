@@ -25,8 +25,17 @@ interface RequestBody {
   value?: string;
   columnName?: string;
   columnType?: "Text" | "Number";
-  numRows?: number
+  numRows?: number;
 }
+
+type FormattedRow = {
+  id: string;
+} & Record<string, { 
+  id: string; 
+  value: string | number | null; 
+  columnName: string; 
+  columnType: string; 
+}>;
 
 export async function POST(req: Request) {
   try {
@@ -39,13 +48,10 @@ export async function POST(req: Request) {
     switch (body.action) {
       case "updateCell":
         return await updateCell(body);
-
       case "addColumn":
         return await addColumn(body);
-
       case "addRow":
         return await addRow(body);
-
       default:
         return NextResponse.json({ success: false, error: "Invalid action type" }, { status: 400 });
     }
@@ -56,15 +62,14 @@ export async function POST(req: Request) {
 }
 
 // Updates for a single cell
-async function updateCell(body: Pick<RequestBody, "tableId" | "cellId" | "value">) {
+async function updateCell(body: Pick<RequestBody, "cellId" | "value">) {
   try {
-    const { tableId, cellId, value } = body;
+    const { cellId, value } = body;
 
-    if (!tableId || !cellId || typeof value !== "string") {
+    if (!cellId || typeof value !== "string") {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
     }
 
-    // Update the single cell in Prisma
     const updatedCell = await prisma.cell.update({
       where: { id: cellId },
       data: { value },
@@ -96,21 +101,23 @@ async function addColumn(body: Pick<RequestBody, "tableId" | "columnName" | "col
     });
 
     // Fetch all rows in the table
-    const rows = await prisma.cell.findMany({
+    const rows = await prisma.row.findMany({
       where: { tableId },
-      select: { rowId: true },
-      distinct: ["rowId"], // Get unique row IDs
+      select: { id: true },
     });
 
     // Create new cells for each row in the new column
-    const newCells = await prisma.cell.createManyAndReturn({
-      data: rows.map((row) => ({
-        tableId,
-        columnId: newColumn.id,
-        rowId: row.rowId,
-        value: "", // Default empty value for new cells
-      })),
-    });
+    const newCells = await prisma.$transaction(
+      rows.map(row =>
+        prisma.cell.create({
+          data: {
+            columnId: newColumn.id,
+            rowId: row.id,
+            value: "", // Default empty value
+          },
+        })
+      )
+    );
 
     return NextResponse.json({ success: true, newColumn, newCells });
   } catch (error) {
@@ -119,55 +126,159 @@ async function addColumn(body: Pick<RequestBody, "tableId" | "columnName" | "col
   }
 }
 
-// Adds row to the table 
+// Adds row(s) to the table
 async function addRow(body: Pick<RequestBody, "tableId" | "numRows">) {
   try {
-    const { tableId, numRows } = body;
+    const { tableId, numRows = 1 } = body;
 
-    if (!tableId || !numRows) {
-      return NextResponse.json({ success: false, error: "Missing tableId or number of rows" }, { status: 400 });
+    if (!tableId) {
+      return NextResponse.json({ success: false, error: "Missing tableId" }, { status: 400 });
     }
 
-    // Fetch all columns in the table, including column names
+    // Fetch all columns in the table once
     const columns = await prisma.column.findMany({
       where: { tableId },
-      select: { id: true, name: true }, // Include `name` to check column names
     });
 
     if (columns.length === 0) {
       return NextResponse.json({ success: false, error: "No columns found for the table" }, { status: 400 });
     }
 
-    const result = await prisma.$transaction(async (prisma) => {
-      const allNewCells = [];
+    // Batch processing parameters
+    const BATCH_SIZE = 1000; // Adjust based on your database capabilities
+    const totalBatches = Math.ceil(numRows / BATCH_SIZE);
+    const allNewRows = [];
+
+    for (let batch = 0; batch < totalBatches; batch++) {
+      const currentBatchSize = Math.min(BATCH_SIZE, numRows - (batch * BATCH_SIZE));
       
-      for (let i = 0; i < numRows; i++) {
-        const rowId = crypto.randomUUID();
-        
-        // Create cells for each column in this row
-        const rowCells = await prisma.cell.createManyAndReturn({
-          data: columns.map((column) => ({
-            tableId,
-            columnId: column.id,
-            rowId,
-            value: generateDefaultValue(column.name), // Better to use type than name
-          })),
+      const batchResult = await prisma.$transaction(async (prisma) => {
+        // Create all rows in this batch at once
+        const rowsData = Array(currentBatchSize).fill({ tableId });
+        const newRows = await prisma.row.createMany({
+          data: rowsData,
+          skipDuplicates: true,
         });
-        
-        allNewCells.push(...rowCells);
-      }
-      
-      return allNewCells;
-    });
+
+        // Get the IDs of the newly created rows
+        const rowIds = await prisma.row.findMany({
+          where: { tableId },
+          orderBy: { createdAt: 'desc' },
+          take: currentBatchSize,
+          select: { id: true }
+        });
+
+        // Prepare all cells for all rows in this batch
+        const cellsData = rowIds.flatMap(row => 
+          columns.map(column => ({
+            columnId: column.id,
+            rowId: row.id,
+            value: generateDefaultValue(column.name),
+          }))
+        );
+
+        // Create all cells in bulk
+        await prisma.cell.createMany({
+          data: cellsData,
+          skipDuplicates: true,
+        });
+
+        // Fetch the complete data for the response
+        const completeRows = await prisma.row.findMany({
+          where: { id: { in: rowIds.map(r => r.id) } },
+          include: { cells: true }
+        });
+
+        return completeRows.map(row => ({
+          id: row.id,
+          tableId: row.tableId,
+          cells: row.cells.map(cell => ({
+            id: cell.id,
+            columnId: cell.columnId,
+            value: cell.value,
+            rowId: cell.rowId
+          })),
+          createdAt: row.createdAt,
+          updatedAt: row.updatedAt
+        }));
+      });
+
+      allNewRows.push(...batchResult);
+    }
 
     return NextResponse.json({ 
       success: true, 
-      newCells: result,
+      newRows: allNewRows,
       message: `Successfully added ${numRows} row(s)`
     });
   } catch (error) {
-    console.error("Error adding row:", error);
+    console.error("Error adding rows:", error);
     return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+// Gets the table including all columns, rows, and cells
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const tableId = searchParams.get("tableId");
+
+    if (!tableId) {
+      return NextResponse.json({ success: false, error: "Missing tableId" });
+    }
+
+    // Fetch table with columns, rows, and cells
+    const table = await prisma.table.findUnique({
+      where: { id: tableId },
+      include: {
+        columns: true,
+        rows: {
+          include: {
+            cells: {
+              include: {
+                column: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!table) {
+      return NextResponse.json({ success: false, error: "Table not found" });
+    }
+
+    // Format the data into a structured format
+    const formattedData = table.rows.map(row => {
+      const rowData: FormattedRow = { id: row.id } as FormattedRow; 
+      row.cells.forEach(cell => {
+        rowData[cell.columnId] = {
+          id: cell.id,
+          value: cell.value,
+          columnName: cell.column.name,
+          columnType: cell.column.type,
+        };
+      });
+
+      return rowData;
+    });
+
+    return NextResponse.json({
+      success: true,
+      table: {
+        id: table.id,
+        name: table.name,
+        baseId: table.baseId,
+        columns: table.columns,
+      },
+      rows: formattedData,
+    });
+  } catch (error) {
+    console.error("Error fetching table:", error);
+    return NextResponse.json({
+      success: false,
+      error: "Failed to fetch table",
+    });
   }
 }
 
@@ -182,51 +293,5 @@ function generateDefaultValue(columnName: string): string {
       return faker.person.jobTitle();
     default:
       return ""; // Empty by default for other columns
-  }
-}
-
-
-// Gets the tables including all the columns and cells
-export async function GET(req: Request) {
-  try {
-    // Extract tableId from request URL
-    const { searchParams } = new URL(req.url);
-    const tableId = searchParams.get("tableId");
-
-    if (!tableId) {
-      return NextResponse.json({ success: false, error: "Missing tableId" });
-    }
-
-    // Fetch table with columns and cells
-    const table = await prisma.table.findUnique({
-      where: { id: tableId },
-      include: {
-        columns: true,
-        cells: true,
-      },
-    });
-
-    if (!table) {
-      return NextResponse.json({ success: false, error: "Table not found" });
-    }
-
-    // Format cell data into a structured row-based format
-    const formattedData: Record<string, Record<string, string>> = {};
-
-    table.cells.forEach((cell) => {
-      (formattedData[cell.rowId] ||= {})[cell.columnId] = cell.value;
-    });
-
-    return NextResponse.json({
-      success: true,
-      table,
-      data: formattedData,
-    });
-  } catch (error) {
-    console.error("Error fetching table:", error);
-    return NextResponse.json({
-      success: false,
-      error: "Failed to fetch table",
-    });
   }
 }

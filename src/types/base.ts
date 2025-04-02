@@ -7,18 +7,23 @@ export interface Base {
   tables: Table[];
 }
 
-export interface Table {
-  name: string;
-  id: string;
-  createdAt: Date;
-  updatedAt: Date;
-  baseId: string;
-}
+// export interface Table {
+//   name: string;
+//   id: string;
+//   createdAt: Date;
+//   updatedAt: Date;
+//   baseId: string;
+// }
 
 export interface AirColumn {
   id: string;
   name: string;
   type: string;
+}
+
+export interface AirRow {
+  id: string;
+  cells: Cell[]
 }
 
 export interface Cell {
@@ -34,6 +39,6 @@ export interface Table {
   createdAt: Date;
   updatedAt: Date;
   baseId: string;
-  columns: { id: string; name: string; type: string }[];
-  cells: { id: string; columnId: string; value: string; rowId: string }[];
+  columns: AirColumn[];
+  rows: AirRow[];
 }
