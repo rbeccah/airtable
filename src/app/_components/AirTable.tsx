@@ -46,9 +46,7 @@ declare module "@tanstack/react-table" {
  */
 type TableRow = {
   rowId: string;
-} & {
-  [columnId: string]: { id: string; value: string };
-};
+} & Record<string, { id: string; value: string }>;
 
 interface AirTableProps {
   tableData: Table | null;

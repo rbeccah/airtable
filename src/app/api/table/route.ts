@@ -28,6 +28,15 @@ interface RequestBody {
   numRows?: number;
 }
 
+type FormattedRow = {
+  id: string;
+} & Record<string, { 
+  id: string; 
+  value: string | number | null; 
+  columnName: string; 
+  columnType: string; 
+}>;
+
 export async function POST(req: Request) {
   try {
     const body: RequestBody & { action: string } = await req.json();
@@ -241,7 +250,7 @@ export async function GET(req: Request) {
 
     // Format the data into a structured format
     const formattedData = table.rows.map(row => {
-      const rowData: Record<string, any> = { rowId: row.id };
+      const rowData: FormattedRow = { id: row.id } as FormattedRow; 
       row.cells.forEach(cell => {
         rowData[cell.columnId] = {
           id: cell.id,
@@ -250,6 +259,7 @@ export async function GET(req: Request) {
           columnType: cell.column.type,
         };
       });
+
       return rowData;
     });
 
