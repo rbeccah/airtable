@@ -28,15 +28,6 @@ interface RequestBody {
   numRows?: number;
 }
 
-type FormattedRow = {
-  id: string;
-} & Record<string, { 
-  id: string; 
-  value: string | number | null; 
-  columnName: string; 
-  columnType: string; 
-}>;
-
 export async function POST(req: Request) {
   try {
     const body: RequestBody & { action: string } = await req.json();
@@ -93,31 +84,32 @@ async function addColumn(body: Pick<RequestBody, "tableId" | "columnName" | "col
 
     // Create the new column
     const newColumn = await prisma.column.create({
-      data: {
-        tableId,
-        name: columnName,
-        type: columnType,
-      },
+      data: { tableId, name: columnName, type: columnType },
     });
 
-    // Fetch all rows in the table
-    const rows = await prisma.row.findMany({
+    // Fetch all row IDs in the table
+    const rowIds = await prisma.row.findMany({
       where: { tableId },
       select: { id: true },
     });
 
-    // Create new cells for each row in the new column
-    const newCells = await prisma.$transaction(
-      rows.map(row =>
-        prisma.cell.create({
-          data: {
-            columnId: newColumn.id,
-            rowId: row.id,
-            value: "", // Default empty value
-          },
-        })
-      )
-    );
+    if (rowIds.length === 0) {
+      return NextResponse.json({ success: true, newColumn, newCells: [] });
+    }
+
+    // Batch insert new cells using createMany
+    await prisma.cell.createMany({
+      data: rowIds.map(row => ({
+        columnId: newColumn.id,
+        rowId: row.id,
+        value: "", // Default empty value
+      })),
+    });
+
+    // Fetch the newly created cells
+    const newCells = await prisma.cell.findMany({
+      where: { columnId: newColumn.id },
+    });
 
     return NextResponse.json({ success: true, newColumn, newCells });
   } catch (error) {
@@ -214,71 +206,6 @@ async function addRow(body: Pick<RequestBody, "tableId" | "numRows">) {
   } catch (error) {
     console.error("Error adding rows:", error);
     return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
-  }
-}
-
-// Gets the table including all columns, rows, and cells
-export async function GET(req: Request) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const tableId = searchParams.get("tableId");
-
-    if (!tableId) {
-      return NextResponse.json({ success: false, error: "Missing tableId" });
-    }
-
-    // Fetch table with columns, rows, and cells
-    const table = await prisma.table.findUnique({
-      where: { id: tableId },
-      include: {
-        columns: true,
-        rows: {
-          include: {
-            cells: {
-              include: {
-                column: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!table) {
-      return NextResponse.json({ success: false, error: "Table not found" });
-    }
-
-    // Format the data into a structured format
-    const formattedData = table.rows.map(row => {
-      const rowData: FormattedRow = { id: row.id } as FormattedRow; 
-      row.cells.forEach(cell => {
-        rowData[cell.columnId] = {
-          id: cell.id,
-          value: cell.value,
-          columnName: cell.column.name,
-          columnType: cell.column.type,
-        };
-      });
-
-      return rowData;
-    });
-
-    return NextResponse.json({
-      success: true,
-      table: {
-        id: table.id,
-        name: table.name,
-        baseId: table.baseId,
-        columns: table.columns,
-      },
-      rows: formattedData,
-    });
-  } catch (error) {
-    console.error("Error fetching table:", error);
-    return NextResponse.json({
-      success: false,
-      error: "Failed to fetch table",
-    });
   }
 }
 
