@@ -88,7 +88,7 @@ export function AddDefaultRows({ tableId, handleNewRow }: AddDefaultRowsProps) {
         </Button>
 
         {isDropdownOpen && (
-          <div className="absolute mt-2 z-10 bg-white shadow-lg rounded-lg p-3 w-64">
+          <div className="absolute mt-2 z-20 bg-white shadow-lg rounded-lg p-3 w-64">
             <form onSubmit={handleSubmit} className="flex flex-col gap-4 items-start">
               <Label htmlFor="numRows" value="Number of default rows" />
               <TextInput 

@@ -16,10 +16,11 @@ import {
 import { RankingInfo, rankItem, compareItems } from '@tanstack/match-sorter-utils';
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { MdOutlineTextFields } from "react-icons/md";
+import { MdOutlineTextFields, MdMoreVert } from "react-icons/md";
 import { FaHashtag } from "react-icons/fa";
 import { AddColumnButton } from "~/app/_components/AddColumnButton";
 import { Cell, AirColumn, Table, AirRow } from "~/types/base";
+import { api } from "~/trpc/react";
 
 // Type Declarations
 declare module "@tanstack/react-table" {
@@ -139,13 +140,18 @@ const EditableCell: React.FC<EditableCellProps> = ({
 };
 
 const ColumnHeader = ({ type, name }: { type: string; name: string }) => (
-  <div className="flex items-center gap-2">
-    {type === "Text" ? (
-      <MdOutlineTextFields className="w-4 h-4 text-gray-500" />
-    ) : (
-      <FaHashtag className="w-4 h-4 text-gray-500" />
-    )}
-    {name}
+  <div className="flex items-center justify-between group">
+    <div className="flex items-center gap-2">
+      {type === "Text" ? (
+        <MdOutlineTextFields className="w-4 h-4 text-gray-500" />
+      ) : (
+        <FaHashtag className="w-4 h-4 text-gray-500" />
+      )}
+      <span className="text-sm font-medium text-gray-800">{name}</span>
+    </div>
+    <button className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600">
+      <MdMoreVert className="w-4 h-4" />
+    </button>
   </div>
 );
 
@@ -157,13 +163,62 @@ export const AirTable: React.FC<AirTableProps> = ({
   setGlobalFilter, 
   newRows 
 }) => {
-  const [data, setData] = useState<TableRow[]>([]);
+  const [localRows, setLocalRows] = useState<TableRow[]>([]);
   const [columns, setColumns] = useState<ColumnDef<TableRow>[]>([]);
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
   // Virtualised Infinite Scrolling
   // tRPC infinite query
+  const { data, fetchNextPage, isFetching, isLoading, refetch } = 
+  api.table.getInfiniteRows.useInfiniteQuery(
+    {
+      tableId: tableId ?? "",
+      limit: PAGE_SIZE,
+      globalFilter,
+    },
+    {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      initialCursor: undefined, // Remove the number or use null/undefined
+      enabled: !!tableId,
+    }
+  );
 
+  // Combine infinite query data with locally added rows
+  const combinedData = useMemo(() => {
+    const fetchedRows = data?.pages.flatMap(page => page.rows) ?? [];
+    return [...localRows, ...fetchedRows];
+  }, [data, localRows]);
+
+  // Flatten the data
+  const flatData = useMemo(() => {
+    return data?.pages.flatMap(page => page.rows) ?? [];
+  }, [data]);
+
+  const totalFetched = flatData.length;
+
+  // Virtualizer
+  const rowVirtualizer = useVirtualizer({
+    count: flatData.length,
+    getScrollElement: () => tableContainerRef.current,
+    estimateSize: () => 50, // row height
+    overscan: 10,
+  });
+
+  // Fetch more on scroll
+  const fetchMoreOnBottomReached = useCallback(
+    (containerRefElement?: HTMLDivElement | null) => {
+      if (containerRefElement) {
+        const { scrollHeight, scrollTop, clientHeight } = containerRefElement;
+        if (
+          scrollHeight - scrollTop - clientHeight < 400 &&
+          !isFetching
+        ) {
+          fetchNextPage();
+        }
+      }
+    },
+    [fetchNextPage, isFetching]
+  );
 
 
   // API Functions
@@ -231,7 +286,7 @@ export const AirTable: React.FC<AirTableProps> = ({
   };
 
   const updateDataWithNewColumn = (newColumn: AirColumn, newCells: Cell[]) => {
-    setData(prevData => 
+    setLocalRows(prevData => 
       prevData.map(row => ({
         ...row,
         [newColumn.id]: getCellForRow(row.rowId, newCells, newColumn.id)
@@ -282,22 +337,40 @@ export const AirTable: React.FC<AirTableProps> = ({
   ];
 
   // Effects
+  // Update local rows when newRows prop changes
+  useEffect(() => {
+    if (newRows.length > 0) {
+      const formattedNewRows = formatTableData(newRows);
+      setLocalRows(prev => [...prev, ...formattedNewRows]);
+      // Refetch data to ensure consistency
+      refetch();
+    }
+  }, [newRows, refetch]);
+
   useEffect(() => {
     if (!tableData) return;
-    console.log(tableData);
-    setData(formatTableData(tableData.rows));
+    setLocalRows(formatTableData(tableData.rows));
     setColumns(generateColumns(tableData.columns));
   }, [tableData]);
 
   useEffect(() => {
     if (newRows.length > 0) {
-      setData(prev => [...prev, ...formatTableData(newRows)]);
+      setLocalRows(prev => [...prev, ...formatTableData(newRows)]);
     }
   }, [newRows]);
 
+  useEffect(() => {
+    fetchMoreOnBottomReached(tableContainerRef.current);
+  }, [fetchMoreOnBottomReached]);
+
+  // Format data for table
+  const formattedData = useMemo(() => {
+    return formatTableData(flatData);
+  }, [flatData]);
+
   // Table Configuration
   const table = useReactTable({
-    data,
+    data: formattedData,
     columns,
     defaultColumn: {
       cell: ({ getValue, row, column, table }) => {
@@ -319,7 +392,7 @@ export const AirTable: React.FC<AirTableProps> = ({
     getCoreRowModel: getCoreRowModel(),
     meta: {
       updateData: (rowIndex, columnId, value) => {
-        setData(prevData =>
+        setLocalRows(prevData =>
           prevData.map((row, index) =>
             index === rowIndex
               ? {
@@ -342,36 +415,86 @@ export const AirTable: React.FC<AirTableProps> = ({
     getSortedRowModel: getSortedRowModel(),
   });
 
+  const virtualRows = rowVirtualizer.getVirtualItems();
+  const paddingTop = virtualRows.length > 0 ? virtualRows[0]?.start || 0 : 0;
+  const paddingBottom = virtualRows.length > 0
+    ? rowVirtualizer.getTotalSize() - (virtualRows[virtualRows.length - 1]?.end || 0)
+    : 0;
+
   // Render
   return (
-    <div className="overflow-x-auto">
-      <table className="border border-gray-400">
-        <thead className="bg-gray-100">
-          {table.getHeaderGroups().map(headerGroup => (
-            <tr key={headerGroup.id}>
-              {headerGroup.headers.map(header => (
-                <th key={header.id} className="border border-gray-300 p-1">
-                  {flexRender(header.column.columnDef.header, header.getContext())}
-                </th>
-              ))}
-            </tr>
-          ))}
-        </thead>
-        <tbody>
-          {table.getRowModel().rows.map(row => (
-            <tr key={row.id} className="border border-gray-100 bg-white">
-              {row.getVisibleCells()
-                .filter(cell => cell.column.id !== "add-column")
-                .map(cell => (
-                  <td key={cell.id} className="border p-2">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))
-              }
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div 
+      ref={tableContainerRef}
+      className="overflow-auto relative h-full border border-gray-200 rounded-lg"
+      onScroll={() => fetchMoreOnBottomReached(tableContainerRef.current)}
+    >
+      <div style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
+        <table className="border-collapse">
+          <thead className="sticky top-0 z-10 bg-gray-100">
+            {table.getHeaderGroups().map(headerGroup => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map(header => (
+                  <th 
+                    key={header.id} 
+                    className={`
+                      border-b border-r border-gray-300 p-0
+                      ${header.column.id === "add-column" ? "w-12 bg-gray-100" : "min-w-[200px]"}
+                    `}
+                  >
+                    <div className="px-3 py-1">
+                      {flexRender(header.column.columnDef.header, header.getContext())}
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {paddingTop > 0 && (
+              <tr>
+                <td style={{ height: `${paddingTop}px` }} colSpan={columns.length} />
+              </tr>
+            )}
+
+            {virtualRows.map(virtualRow => {
+              const row = table.getRowModel().rows[virtualRow.index]!;
+              return (
+                <tr 
+                  key={row.id} 
+                  className="hover:bg-gray-50 group"
+                  style={{ height: '42px' }}
+                >
+                  {row.getVisibleCells().map(cell => (
+                    <td 
+                      key={cell.id} 
+                      className={`
+                        border-b border-r p-0
+                        ${cell.column.id === "add-column" ? "bg-gray-100 border-gray-100" : "bg-white border-gray-200"}
+                      `}
+                    >
+                      <div className="h-full px-3 py-2 flex items-center">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </div>
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+
+            {paddingBottom > 0 && (
+              <tr>
+                <td style={{ height: `${paddingBottom}px` }} colSpan={columns.length} />
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      
+      {isFetching && (
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white px-4 py-2 rounded shadow-md border border-gray-200">
+          Loading more records...
+        </div>
+      )}
     </div>
   );
 };

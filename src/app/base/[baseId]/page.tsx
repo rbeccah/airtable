@@ -23,7 +23,6 @@ const Base = () => {
   const [selectedTableData, setSelectedTableData] = useState<Table | null>(null);
   const [globalFilter, setGlobalFilter] = useState("");
   const [newCells, setNewCells] = useState<AirRow[]>([]);
-  console.log(selectedTableData);
 
   useEffect(() => {
     const fetchTables = async () => {
@@ -85,7 +84,6 @@ const Base = () => {
             newRows={newCells}
           />
         </div>
-        <div>hello</div>
       </div>
     </SaveProvider>
   );

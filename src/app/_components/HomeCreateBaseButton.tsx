@@ -5,25 +5,29 @@ import { useSession } from "next-auth/react"
 import { prisma } from "~/lib/db";
 import { useRouter } from "next/navigation";
 import { Base } from "~/types/base";
+import { api } from "~/trpc/react";
 
 export function HomeCreateBaseButton() {
   const router = useRouter();
+  const { data: session } = useSession();
 
-  const handleCreateBase = async () => {
-
-    const response = await fetch("/api/base", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: "Untitled Base" }),
-    });
-
-    if (response.ok) {
-      const base = (await response.json()) as Base;
+  const createBaseMutation = api.base.create.useMutation({
+    onSuccess: (base: { id: any; }) => {
       console.log("Base created:", base);
       router.push(`/base/${base.id}`);
-    } else {
-      console.error("Error creating base");
+    },
+    onError: (error: any) => {
+      console.error("Error creating base:", error);
+    },
+  });
+
+  const handleCreateBase = () => {
+    if (!session?.user) {
+      console.error("User not authenticated");
+      return;
     }
+    
+    createBaseMutation.mutate({ name: "Untitled Base" });
   };
 
   return (
