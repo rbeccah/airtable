@@ -14,7 +14,7 @@ export const baseRouter = createTRPCRouter({
       const base = await prisma.base.create({
         data: {
           name,
-          user: { connect: { email: ctx.session.user.email! } },
+          user: { connect: { email: ctx.session.user.email } },
         },
       });
 

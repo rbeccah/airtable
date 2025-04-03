@@ -6,17 +6,19 @@ import { prisma } from "~/lib/db";
 import { useRouter } from "next/navigation";
 import { Base } from "~/types/base";
 import { api } from "~/trpc/react";
+import { TRPCClientErrorLike } from "@trpc/client";
+import { AppRouter } from "~/server/api/root";
 
 export function HomeCreateBaseButton() {
   const router = useRouter();
   const { data: session } = useSession();
 
   const createBaseMutation = api.base.create.useMutation({
-    onSuccess: (base: { id: any; }) => {
+    onSuccess: (base: { id: string; }) => {
       console.log("Base created:", base);
       router.push(`/base/${base.id}`);
     },
-    onError: (error: any) => {
+    onError: (error: TRPCClientErrorLike<AppRouter>) => {
       console.error("Error creating base:", error);
     },
   });

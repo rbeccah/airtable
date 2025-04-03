@@ -213,7 +213,7 @@ export const AirTable: React.FC<AirTableProps> = ({
           scrollHeight - scrollTop - clientHeight < 400 &&
           !isFetching
         ) {
-          fetchNextPage();
+          void fetchNextPage();
         }
       }
     },
@@ -301,7 +301,7 @@ export const AirTable: React.FC<AirTableProps> = ({
     });
   
     // Ensure refetch occurs to refresh all virtualized rows
-    refetch();
+    void refetch();
   };
   
 
@@ -354,7 +354,7 @@ export const AirTable: React.FC<AirTableProps> = ({
       const formattedNewRows = formatTableData(newRows);
       setLocalRows(prev => [...prev, ...formattedNewRows]);
       // Refetch data to ensure consistency
-      refetch();
+      void refetch();
     }
   }, [newRows, refetch]);
 
@@ -427,9 +427,9 @@ export const AirTable: React.FC<AirTableProps> = ({
   });
 
   const virtualRows = rowVirtualizer.getVirtualItems();
-  const paddingTop = virtualRows.length > 0 ? virtualRows[0]?.start || 0 : 0;
+  const paddingTop = virtualRows[0]?.start ?? 0;
   const paddingBottom = virtualRows.length > 0
-    ? rowVirtualizer.getTotalSize() - (virtualRows[virtualRows.length - 1]?.end || 0)
+    ? rowVirtualizer.getTotalSize() - (virtualRows[virtualRows.length - 1]?.end ?? 0)
     : 0;
 
   // Render
