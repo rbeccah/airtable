@@ -84,31 +84,32 @@ async function addColumn(body: Pick<RequestBody, "tableId" | "columnName" | "col
 
     // Create the new column
     const newColumn = await prisma.column.create({
-      data: {
-        tableId,
-        name: columnName,
-        type: columnType,
-      },
+      data: { tableId, name: columnName, type: columnType },
     });
 
-    // Fetch all rows in the table
-    const rows = await prisma.row.findMany({
+    // Fetch all row IDs in the table
+    const rowIds = await prisma.row.findMany({
       where: { tableId },
       select: { id: true },
     });
 
-    // Create new cells for each row in the new column
-    const newCells = await prisma.$transaction(
-      rows.map(row =>
-        prisma.cell.create({
-          data: {
-            columnId: newColumn.id,
-            rowId: row.id,
-            value: "", // Default empty value
-          },
-        })
-      )
-    );
+    if (rowIds.length === 0) {
+      return NextResponse.json({ success: true, newColumn, newCells: [] });
+    }
+
+    // Batch insert new cells using createMany
+    await prisma.cell.createMany({
+      data: rowIds.map(row => ({
+        columnId: newColumn.id,
+        rowId: row.id,
+        value: "", // Default empty value
+      })),
+    });
+
+    // Fetch the newly created cells
+    const newCells = await prisma.cell.findMany({
+      where: { columnId: newColumn.id },
+    });
 
     return NextResponse.json({ success: true, newColumn, newCells });
   } catch (error) {

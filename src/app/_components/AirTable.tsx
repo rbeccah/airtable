@@ -265,12 +265,17 @@ export const AirTable: React.FC<AirTableProps> = ({
         return;
       }
   
+      // Update column definitions
       updateColumns(res.newColumn);
       updateDataWithNewColumn(res.newColumn, res.newCells);
+      
+      // Invalidate & refetch table data to ensure new column updates all rows
+      await refetch();
     } catch (error) {
       console.error("Error adding column:", error);
     }
   };
+  
 
   // Helper Functions
   const updateColumns = (newColumn: AirColumn) => {
@@ -286,13 +291,19 @@ export const AirTable: React.FC<AirTableProps> = ({
   };
 
   const updateDataWithNewColumn = (newColumn: AirColumn, newCells: Cell[]) => {
-    setLocalRows(prevData => 
-      prevData.map(row => ({
+    setLocalRows(prevData => {
+      const updatedRows = prevData.map(row => ({
         ...row,
         [newColumn.id]: getCellForRow(row.rowId, newCells, newColumn.id)
-      }))
-    );
+      }));
+  
+      return [...updatedRows]; // Ensure a new array reference to trigger a state update
+    });
+  
+    // Ensure refetch occurs to refresh all virtualized rows
+    refetch();
   };
+  
 
   const getCellForRow = (rowId: string, newCells: Cell[], columnId: string) => {
     const newCell = newCells.find(cell => cell.rowId === rowId);
