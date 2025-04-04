@@ -3,6 +3,12 @@ import { prisma } from "~/lib/db";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { faker } from "@faker-js/faker";
 
+type DefaultData = {
+  FirstName: string;
+  LastName: string;
+  Role: string;
+};
+
 export const baseRouter = createTRPCRouter({
   create: protectedProcedure
     .input(z.object({ name: z.string() }))
@@ -17,8 +23,8 @@ export const baseRouter = createTRPCRouter({
           user: { connect: { email: ctx.session.user.email } },
         },
       });
-
-      // Rest of your creation logic (same as in API route)
+      
+      // Create table with columns
       const table = await prisma.table.create({
         data: {
           name: "Table 1",
@@ -33,36 +39,39 @@ export const baseRouter = createTRPCRouter({
         },
         include: { columns: true },
       });
-
+      
       // Generate default data
-      const defaultData = Array.from({ length: 10 }, () => ({
+      const defaultData: DefaultData[] = Array.from({ length: 10 }, () => ({
         FirstName: faker.person.firstName(),
         LastName: faker.person.lastName(),
         Role: faker.person.jobTitle(),
       }));
-
-      await prisma.$transaction(async (prisma) => {
-        for (const data of defaultData) {
-          const row = await prisma.row.create({
-            data: {
-              tableId: table.id,
-            },
-          });
-
-          await Promise.all(
-            table.columns.map((column) =>
-              prisma.cell.create({
-                data: {
-                  columnId: column.id,
-                  rowId: row.id,
-                  value: String(data[column.name as keyof typeof data] || ""),
-                },
-              })
-            )
-          );
-        }
+      
+      // Create all rows first
+      const rows = await prisma.row.createMany({
+        data: defaultData.map(() => ({ tableId: table.id })),
+        skipDuplicates: true,
       });
-
+      
+      // Get the created row IDs
+      const createdRows = await prisma.row.findMany({
+        where: { tableId: table.id },
+        select: { id: true },
+        orderBy: { createdAt: 'desc' },
+        take: defaultData.length,
+      });
+      
+      // Create all cells in bulk
+      await prisma.cell.createMany({
+        data: createdRows.flatMap((row, i) => 
+          table.columns.map(column => ({
+            columnId: column.id,
+            rowId: row.id,
+            value: String(defaultData[i]![column.name as keyof typeof defaultData[0]] || ""),
+          }))
+        ),
+      });
+      
       return base;
     }),
 });
