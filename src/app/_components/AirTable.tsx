@@ -186,15 +186,14 @@ export const AirTable: React.FC<AirTableProps> = ({
   // Combine infinite query data with locally added rows
   const combinedData = useMemo(() => {
     const fetchedRows = data?.pages.flatMap(page => page.rows) ?? [];
-    return [...localRows, ...fetchedRows];
+    const formattedFetchedRows = formatTableData(fetchedRows);
+    return [...localRows, ...formattedFetchedRows];
   }, [data, localRows]);
 
   // Flatten the data
   const flatData = useMemo(() => {
     return data?.pages.flatMap(page => page.rows) ?? [];
   }, [data]);
-
-  const totalFetched = flatData.length;
 
   // Virtualizer
   const rowVirtualizer = useVirtualizer({
@@ -351,8 +350,6 @@ export const AirTable: React.FC<AirTableProps> = ({
   // Update local rows when newRows prop changes
   useEffect(() => {
     if (newRows.length > 0) {
-      const formattedNewRows = formatTableData(newRows);
-      setLocalRows(prev => [...prev, ...formattedNewRows]);
       // Refetch data to ensure consistency
       void refetch();
     }
@@ -374,14 +371,9 @@ export const AirTable: React.FC<AirTableProps> = ({
     fetchMoreOnBottomReached(tableContainerRef.current);
   }, [fetchMoreOnBottomReached]);
 
-  // Format data for table
-  const formattedData = useMemo(() => {
-    return formatTableData(flatData);
-  }, [flatData]);
-
   // Table Configuration
   const table = useReactTable({
-    data: formattedData,
+    data: combinedData,
     columns,
     defaultColumn: {
       cell: ({ getValue, row, column, table }) => {

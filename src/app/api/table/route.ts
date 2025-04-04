@@ -127,82 +127,74 @@ async function addRow(body: Pick<RequestBody, "tableId" | "numRows">) {
       return NextResponse.json({ success: false, error: "Missing tableId" }, { status: 400 });
     }
 
-    // Fetch all columns in the table once
+    // 1. Get columns (only what we need)
     const columns = await prisma.column.findMany({
       where: { tableId },
+      select: { id: true, name: true }
     });
 
     if (columns.length === 0) {
-      return NextResponse.json({ success: false, error: "No columns found for the table" }, { status: 400 });
+      return NextResponse.json({ success: false, error: "No columns found" }, { status: 400 });
     }
 
-    // Batch processing parameters
-    const BATCH_SIZE = 1000; // Adjust based on your database capabilities
-    const totalBatches = Math.ceil(numRows / BATCH_SIZE);
-    const allNewRows = [];
-
-    for (let batch = 0; batch < totalBatches; batch++) {
-      const currentBatchSize = Math.min(BATCH_SIZE, numRows - (batch * BATCH_SIZE));
-      
-      const batchResult = await prisma.$transaction(async (prisma) => {
-        // Create all rows in this batch at once
-        const rowsData = Array(currentBatchSize).fill({ tableId });
-        const newRows = await prisma.row.createMany({
-          data: rowsData,
-          skipDuplicates: true,
-        });
-
-        // Get the IDs of the newly created rows
-        const rowIds = await prisma.row.findMany({
-          where: { tableId },
-          orderBy: { createdAt: 'desc' },
-          take: currentBatchSize,
-          select: { id: true }
-        });
-
-        // Prepare all cells for all rows in this batch
-        const cellsData = rowIds.flatMap(row => 
-          columns.map(column => ({
-            columnId: column.id,
-            rowId: row.id,
-            value: generateDefaultValue(column.name),
-          }))
-        );
-
-        // Create all cells in bulk
-        await prisma.cell.createMany({
-          data: cellsData,
-          skipDuplicates: true,
-        });
-
-        // Fetch the complete data for the response
-        const completeRows = await prisma.row.findMany({
-          where: { id: { in: rowIds.map(r => r.id) } },
-          include: { cells: true }
-        });
-
-        return completeRows.map(row => ({
-          id: row.id,
-          tableId: row.tableId,
-          cells: row.cells.map(cell => ({
-            id: cell.id,
-            columnId: cell.columnId,
-            value: cell.value,
-            rowId: cell.rowId
-          })),
-          createdAt: row.createdAt,
-          updatedAt: row.updatedAt
-        }));
+    // 2. Create all rows at once
+    const createdRowIds = await prisma.$transaction(async (tx) => {
+      // Insert all rows
+      await tx.row.createMany({
+        data: Array(numRows).fill({ tableId }),
       });
 
-      allNewRows.push(...batchResult);
-    }
+      // Get the IDs of the newly created rows
+      const createdRows = await tx.row.findMany({
+        where: { tableId },
+        orderBy: { createdAt: 'desc' },
+        take: numRows,
+        select: { id: true }
+      });
+
+      return createdRows.map(row => row.id);
+    });
+
+    // 3. Create all cells in bulk
+    const cellsData = createdRowIds.flatMap(rowId =>
+      columns.map(column => ({
+        columnId: column.id,
+        rowId,
+        value: generateDefaultValue(column.name),
+      }))
+    );
+
+    await prisma.cell.createMany({
+      data: cellsData,
+    });
+
+    // 4. Fetch the complete created rows with their cells
+    const newRows = await prisma.row.findMany({
+      where: { id: { in: createdRowIds } },
+      include: {
+        cells: {
+          select: {
+            id: true,
+            columnId: true,
+            value: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' } // Maintain creation order
+    });
 
     return NextResponse.json({ 
       success: true, 
-      newRows: allNewRows,
+      newRows: newRows.map(row => ({
+        id: row.id,
+        tableId: row.tableId,
+        cells: row.cells,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt
+      })),
       message: `Successfully added ${numRows} row(s)`
     });
+
   } catch (error) {
     console.error("Error adding rows:", error);
     return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
