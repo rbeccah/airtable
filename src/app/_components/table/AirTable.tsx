@@ -243,7 +243,7 @@ export const AirTable: React.FC<AirTableProps> = ({
         // Directly call API to update cell
         const row = table.getRowModel().rows[rowIndex]?.original;
         if (row?.[columnId]?.id) {
-          saveCellData(row[columnId].id, String(value));
+          void saveCellData(row[columnId].id, String(value));
         }
       },
     },
