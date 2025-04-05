@@ -8,6 +8,7 @@ import BaseTableTabsBar from "~/app/_components/base/BaseTableTabsBar";
 import { BaseTableNavbar } from "~/app/_components/base/BaseTableNavbar";
 import { AirTable } from "~/app/_components/table/AirTable";
 import { AirRow, Cell, Table } from "~/types/base";
+import { api } from "~/trpc/react";
 
 interface ApiResponse {
   success: boolean;
@@ -23,6 +24,21 @@ const Base = () => {
   const [selectedTableData, setSelectedTableData] = useState<Table | null>(null);
   const [globalFilter, setGlobalFilter] = useState("");
   const [newCells, setNewCells] = useState<AirRow[]>([]);
+
+  // Function to add a new table
+  const createTableMutation = api.base.createTable.useMutation({
+    onSuccess: (newTable: Table) => {
+      // Add the new table to the state after successful creation
+      setTables((prevTables) => [...prevTables, newTable]);
+    },
+    onError: (error) => {
+      console.error("Error creating table:", error);
+    },
+  });
+
+  const handleAddTable = () => {
+    createTableMutation.mutate({ baseId });
+  };
 
   useEffect(() => {
     const fetchTables = async () => {
@@ -67,6 +83,7 @@ const Base = () => {
             baseId={baseId}
             tables={tables.map(({ id, name }) => ({ id, name }))}
             setSelectedTableId={setSelectedTableId}
+            onAddTable={handleAddTable}
           />
         </div>
         <BaseTableNavbar 
