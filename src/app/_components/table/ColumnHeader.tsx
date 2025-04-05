@@ -1,5 +1,6 @@
 import { MdOutlineTextFields, MdMoreVert } from "react-icons/md";
 import { FaHashtag } from "react-icons/fa";
+import { FaAngleDown } from "react-icons/fa6";
 
 interface ColumnHeaderProps {
   type: string;
@@ -16,8 +17,8 @@ export const ColumnHeader = ({ type, name }: ColumnHeaderProps) => (
       )}
       <span className="text-sm font-medium text-gray-800">{name}</span>
     </div>
-    <button className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600">
-      <MdMoreVert className="w-4 h-4" />
+    <button className="opacity-100 text-gray-400 hover:text-gray-600">
+      <FaAngleDown className="w-4 h-4" />
     </button>
   </div>
 );

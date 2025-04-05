@@ -22,7 +22,7 @@ export const EditableCell = ({
 
   return (
     <input
-      className="text-gray-900 border-transparent text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 -m-1.5"
+      className="text-gray-900 border-transparent text-sm rounded-sm bg-transparent focus:ring-blue-500 focus:border-blue-500 block w-full"
       value={value}
       onChange={(e) => setValue(e.target.value)}
       onBlur={onBlur}
