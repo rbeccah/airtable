@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import HomeBaseCard from '~/app/_components/HomeBaseCard';
+import HomeBaseCard from '~/app/_components/home/HomeBaseCard';
 import { Base } from '~/types/base';
 
 export function HomeMainSection() {

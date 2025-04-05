@@ -6,7 +6,7 @@ import { IoFilterOutline } from "react-icons/io5";
 import { BiSortAlt2 } from "react-icons/bi";
 import { MdOutlinePlaylistAdd } from "react-icons/md";
 import { useSave } from "~/app/_context/SaveContext";
-import { AddDefaultRows } from "~/app/_components/AddDefaultRows";
+import { AddDefaultRows } from "~/app/_components/base/AddDefaultRows";
 import { AirRow, Cell } from "~/types/base";
 
 interface BaseTableNavbarProps {

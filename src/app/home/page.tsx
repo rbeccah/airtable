@@ -4,9 +4,9 @@ import { SessionProvider } from "next-auth/react"
 import { getServerSession } from "next-auth";
 import { authOptions } from "~/lib/auth";
 
-import { HomeNavbar } from "~/app/_components/HomeNavbar";
-import { HomeSideBar } from "~/app/_components/HomeSidebar";
-import { HomeMainSection } from "~/app/_components/HomeMainSection";
+import { HomeNavbar } from "~/app/_components/home/HomeNavbar";
+import { HomeSideBar } from "~/app/_components/home/HomeSidebar";
+import { HomeMainSection } from "~/app/_components/home/HomeMainSection";
 
 const Home = async () => {
   const session = await getServerSession(authOptions);

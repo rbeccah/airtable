@@ -1,7 +1,7 @@
 "use client";
 
 import { Dispatch, SetStateAction } from "react";
-import { HomeCreateBaseButton } from "~/app/_components/HomeCreateBaseButton";
+import { HomeCreateBaseButton } from "~/app/_components/home/HomeCreateBaseButton";
 interface HomeCreateBaseButtonProps {
   setToggleCreateBase: Dispatch<SetStateAction<boolean>>;
 }
