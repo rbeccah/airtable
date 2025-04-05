@@ -9,151 +9,37 @@ import {
   RowData,
   getFilteredRowModel,
   FilterFn,
-  SortingFn,
   getSortedRowModel,
-  sortingFns,
 } from "@tanstack/react-table";
-import { RankingInfo, rankItem, compareItems } from '@tanstack/match-sorter-utils';
+import { RankingInfo } from '@tanstack/match-sorter-utils';
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useInfiniteQuery } from "@tanstack/react-query";
-import { MdOutlineTextFields, MdMoreVert } from "react-icons/md";
-import { FaHashtag } from "react-icons/fa";
-import { AddColumnButton } from "~/app/_components/AddColumnButton";
-import { Cell, AirColumn, Table, AirRow } from "~/types/base";
+import { AddColumnButton } from "~/app/_components/table/AddColumnButton";
+import { Cell, AirColumn } from "~/types/base";
 import { api } from "~/trpc/react";
+import { 
+  AddColumnResponse, 
+  AirTableProps, 
+  ApiResponse, 
+  TableRow 
+} from "~/types/airtable";
+import { formatTableData, fuzzyFilter, fuzzySort, PAGE_SIZE } from "~/utils/table-utils";
+import { EditableCell } from "./EditableCell";
+import { ColumnHeader } from "./ColumnHeader";
 
-// Type Declarations
+// Types
 declare module "@tanstack/react-table" {
   interface TableMeta<TData extends RowData> {
     updateData: (rowIndex: number, columnId: string, value: unknown) => void;
   }
   
   interface FilterFns {
-    fuzzy: FilterFn<unknown>
+    fuzzy: FilterFn<unknown>;
   }
   
   interface FilterMeta {
-    itemRank: RankingInfo
+    itemRank: RankingInfo;
   }
 }
-
-/**
- * TableRow format:
- * {
- *   rowId: "row1",
- *   columnId1: { id: "cell1", value: "Alice" },
- *   ...
- * }
- */
-type TableRow = {
-  rowId: string;
-} & Record<string, { id: string; value: string }>;
-
-interface AirTableProps {
-  tableData: Table | null;
-  tableId: string | null;
-  globalFilter: string;
-  setGlobalFilter: (value: string) => void;
-  newRows: AirRow[];
-}
-
-interface AddColumnResponse {
-  success: boolean;
-  newColumn?: AirColumn;
-  newCells?: Cell[];
-  error?: string;
-}
-
-interface ApiResponse {
-  success: boolean;
-  error?: string;
-}
-
-const PAGE_SIZE = 50; // Number of rows to fetch at a time
-
-// Utility Functions
-const fuzzyFilter: FilterFn<TableRow> = (row, columnId, value, addMeta) => {
-  const itemRank = rankItem((row.getValue(columnId)) ?? "", value as string);
-  addMeta({ itemRank });
-  return itemRank.passed;
-};
-
-const fuzzySort: SortingFn<TableRow> = (rowA, rowB, columnId) => {
-  let dir = 0;
-
-  if (rowA.columnFiltersMeta[columnId] && rowB.columnFiltersMeta[columnId]) {
-    dir = compareItems(
-      rowA.columnFiltersMeta[columnId]?.itemRank ?? { ranking: 0 },
-      rowB.columnFiltersMeta[columnId]?.itemRank ?? { ranking: 0 }
-    );
-  }
-
-  return dir === 0 ? sortingFns.alphanumeric(rowA, rowB, columnId) : dir;
-};
-
-const formatTableData = (rows: AirRow[]): TableRow[] => {
-  return rows.map(row => {
-    // Create a new object with rowId and the Record type
-    const tableRow = {
-      rowId: row.id,
-      ...Object.fromEntries(
-        row.cells.map(cell => [
-          cell.columnId, 
-          { id: cell.id, value: cell.value }
-        ])
-    )} as unknown as TableRow;
-    
-    return tableRow;
-  });
-};
-
-// Sub-components
-interface EditableCellProps {
-  cellData: { id: string; value: string };
-  columnType: string;
-  updateData: (value: string) => void;
-  onSaveCell: (cellId: string, value: string) => void;
-}
-
-const EditableCell: React.FC<EditableCellProps> = ({
-  cellData,
-  columnType,
-  updateData,
-  onSaveCell,
-}) => {
-  const [value, setValue] = useState(cellData.value);
-
-  const onBlur = () => {
-    updateData(value);
-    onSaveCell(cellData.id, value);
-  };
-
-  return (
-    <input
-      className="text-gray-900 border-transparent text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 -m-1.5"
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      onBlur={onBlur}
-      type={columnType === "Number" ? "number" : "text"}
-    />
-  );
-};
-
-const ColumnHeader = ({ type, name }: { type: string; name: string }) => (
-  <div className="flex items-center justify-between group">
-    <div className="flex items-center gap-2">
-      {type === "Text" ? (
-        <MdOutlineTextFields className="w-4 h-4 text-gray-500" />
-      ) : (
-        <FaHashtag className="w-4 h-4 text-gray-500" />
-      )}
-      <span className="text-sm font-medium text-gray-800">{name}</span>
-    </div>
-    <button className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-600">
-      <MdMoreVert className="w-4 h-4" />
-    </button>
-  </div>
-);
 
 // Main Component
 export const AirTable: React.FC<AirTableProps> = ({ 

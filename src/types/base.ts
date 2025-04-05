@@ -7,14 +7,6 @@ export interface Base {
   tables: Table[];
 }
 
-// export interface Table {
-//   name: string;
-//   id: string;
-//   createdAt: Date;
-//   updatedAt: Date;
-//   baseId: string;
-// }
-
 export interface AirColumn {
   id: string;
   name: string;

@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { SaveProvider } from "~/app/_context/SaveContext";
-import { BaseNavbar } from "~/app/_components/BaseNavbar";
-import BaseTableTabsBar from "~/app/_components/BaseTableTabsBar";
-import { BaseTableNavbar } from "~/app/_components/BaseTableNavbar";
-import { AirTable } from "~/app/_components/AirTable";
+import { BaseNavbar } from "~/app/_components/base/BaseNavbar";
+import BaseTableTabsBar from "~/app/_components/base/BaseTableTabsBar";
+import { BaseTableNavbar } from "~/app/_components/base/BaseTableNavbar";
+import { AirTable } from "~/app/_components/table/AirTable";
 import { AirRow, Cell, Table } from "~/types/base";
 
 interface ApiResponse {
