@@ -17,7 +17,6 @@ interface BaseTableNavbarProps {
 }
 
 export function BaseTableNavbar({ tableId, globalFilter, setGlobalFilter, handleNewRow }: BaseTableNavbarProps) {
-  const { triggerSave } = useSave();
 
   return (
     <header className="antialiased">

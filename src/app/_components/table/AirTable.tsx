@@ -14,7 +14,7 @@ import {
 import { RankingInfo } from '@tanstack/match-sorter-utils';
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { AddColumnButton } from "~/app/_components/table/AddColumnButton";
-import { Cell, AirColumn } from "~/types/base";
+import { Cell, AirColumn, AirRow } from "~/types/base";
 import { api } from "~/trpc/react";
 import { 
   AddColumnResponse, 
@@ -25,6 +25,7 @@ import {
 import { formatTableData, fuzzyFilter, fuzzySort, PAGE_SIZE } from "~/utils/table-utils";
 import { EditableCell } from "./EditableCell";
 import { ColumnHeader } from "./ColumnHeader";
+import { AddRowButton } from "./AddRowButton";
 
 // Types
 declare module "@tanstack/react-table" {
@@ -49,7 +50,6 @@ export const AirTable: React.FC<AirTableProps> = ({
   setGlobalFilter, 
   newRows 
 }) => {
-  const [localRows, setLocalRows] = useState<TableRow[]>([]);
   const [columns, setColumns] = useState<ColumnDef<TableRow>[]>([]);
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
@@ -69,21 +69,16 @@ export const AirTable: React.FC<AirTableProps> = ({
     }
   );
 
-  // Combine infinite query data with locally added rows
-  const combinedData = useMemo(() => {
+  // Flatten the data
+  const fetchedData = useMemo(() => {
     const fetchedRows = data?.pages.flatMap(page => page.rows) ?? [];
     const formattedFetchedRows = formatTableData(fetchedRows);
-    return [...localRows, ...formattedFetchedRows];
-  }, [data, localRows]);
-
-  // Flatten the data
-  const flatData = useMemo(() => {
-    return data?.pages.flatMap(page => page.rows) ?? [];
+    return formattedFetchedRows;
   }, [data]);
-
+  
   // Virtualizer
   const rowVirtualizer = useVirtualizer({
-    count: flatData.length,
+    count: fetchedData.length,
     getScrollElement: () => tableContainerRef.current,
     estimateSize: () => 50, // row height
     overscan: 10,
@@ -124,6 +119,7 @@ export const AirTable: React.FC<AirTableProps> = ({
       if (!result.success) {
         console.error("Failed to update cell:", result.error);
       }
+      await refetch();
     } catch (error) {
       console.error("Error saving data:", error);
     }
@@ -152,7 +148,7 @@ export const AirTable: React.FC<AirTableProps> = ({
   
       // Update column definitions
       updateColumns(res.newColumn);
-      updateDataWithNewColumn(res.newColumn, res.newCells);
+      // updateDataWithNewColumn(res.newColumn, res.newCells);
       
       // Invalidate & refetch table data to ensure new column updates all rows
       await refetch();
@@ -161,6 +157,9 @@ export const AirTable: React.FC<AirTableProps> = ({
     }
   };
   
+  const handleNewRow = (newCells: AirRow[]) => {
+    void refetch();
+  };
 
   // Helper Functions
   const updateColumns = (newColumn: AirColumn) => {
@@ -173,28 +172,6 @@ export const AirTable: React.FC<AirTableProps> = ({
         prevColumns[prevColumns.length - 1], // Re-add the "Add Column" button
       ].filter(Boolean) as ColumnDef<TableRow>[];
     });
-  };
-
-  const updateDataWithNewColumn = (newColumn: AirColumn, newCells: Cell[]) => {
-    setLocalRows(prevData => {
-      const updatedRows = prevData.map(row => ({
-        ...row,
-        [newColumn.id]: getCellForRow(row.rowId, newCells, newColumn.id)
-      }));
-  
-      return [...updatedRows]; // Ensure a new array reference to trigger a state update
-    });
-  
-    // Ensure refetch occurs to refresh all virtualized rows
-    void refetch();
-  };
-  
-
-  const getCellForRow = (rowId: string, newCells: Cell[], columnId: string) => {
-    const newCell = newCells.find(cell => cell.rowId === rowId);
-    return newCell 
-      ? { id: newCell.id, value: newCell.value }
-      : { id: "", value: "" };
   };
 
   const createColumnDef = (col: { id: string; name: string; type: string }): ColumnDef<TableRow> => ({
@@ -243,15 +220,8 @@ export const AirTable: React.FC<AirTableProps> = ({
 
   useEffect(() => {
     if (!tableData) return;
-    setLocalRows(formatTableData(tableData.rows));
     setColumns(generateColumns(tableData.columns));
   }, [tableData]);
-
-  useEffect(() => {
-    if (newRows.length > 0) {
-      setLocalRows(prev => [...prev, ...formatTableData(newRows)]);
-    }
-  }, [newRows]);
 
   useEffect(() => {
     fetchMoreOnBottomReached(tableContainerRef.current);
@@ -259,41 +229,22 @@ export const AirTable: React.FC<AirTableProps> = ({
 
   // Table Configuration
   const table = useReactTable({
-    data: combinedData,
+    data: fetchedData,
     columns,
     defaultColumn: {
       cell: ({ getValue, row, column, table }) => {
         const cellData = getValue() as { id: string; value: string };
         const columnType = tableData?.columns.find(c => c.id === column.id)?.type ?? "Text";
-
-        return (
-          <EditableCell
-            cellData={cellData}
-            columnType={columnType}
-            updateData={(newValue) => {
-              table.options.meta?.updateData(row.index, column.id, newValue);
-            }}
-            onSaveCell={(cellId, value) => saveCellData(cellId, value)}
-          />
-        );
       },
     },
     getCoreRowModel: getCoreRowModel(),
     meta: {
       updateData: (rowIndex, columnId, value) => {
-        setLocalRows(prevData =>
-          prevData.map((row, index) =>
-            index === rowIndex
-              ? {
-                  ...row,
-                  [columnId]: {
-                    id: row[columnId]?.id ?? "",
-                    value: String(value),
-                  },
-                }
-              : row
-          )
-        );
+        // Directly call API to update cell
+        const row = table.getRowModel().rows[rowIndex]?.original;
+        if (row?.[columnId]?.id) {
+          saveCellData(row[columnId].id, String(value));
+        }
       },
     },
     filterFns: { fuzzy: fuzzyFilter },
@@ -347,10 +298,11 @@ export const AirTable: React.FC<AirTableProps> = ({
 
             {virtualRows.map(virtualRow => {
               const row = table.getRowModel().rows[virtualRow.index]!;
+              if (!row) return null; // Skip rendering if row is undefined
               return (
                 <tr 
                   key={row.id} 
-                  className="hover:bg-gray-50 group"
+                  className="bg-white hover:bg-gray-50"
                   style={{ height: '42px' }}
                 >
                   {row.getVisibleCells().map(cell => (
@@ -358,10 +310,10 @@ export const AirTable: React.FC<AirTableProps> = ({
                       key={cell.id} 
                       className={`
                         border-b border-r p-0
-                        ${cell.column.id === "add-column" ? "bg-gray-100 border-gray-100" : "bg-white border-gray-200"}
+                        ${cell.column.id === "add-column" ? "bg-gray-100 border-gray-100" : "bg-transparent border-gray-200"}
                       `}
                     >
-                      <div className="h-full px-3 py-2 flex items-center">
+                      <div className="h-full w-full flex items-center">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </div>
                     </td>
@@ -370,11 +322,13 @@ export const AirTable: React.FC<AirTableProps> = ({
               );
             })}
 
-            {paddingBottom > 0 && (
-              <tr>
-                <td style={{ height: `${paddingBottom}px` }} colSpan={columns.length} />
-              </tr>
-            )}
+            <tr className="h-[42px] bg-white">
+              <td colSpan={columns.length - 1} className="h-full border-b border-gray-300">
+                <div className="h-[41px] flex items-center justify-center bg-white hover:bg-gray-50">
+                  <AddRowButton tableId={tableId} handleNewRow={handleNewRow}/>
+                </div>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
