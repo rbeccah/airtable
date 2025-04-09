@@ -8,21 +8,38 @@ import { MdOutlinePlaylistAdd } from "react-icons/md";
 import { useSave } from "~/app/_context/SaveContext";
 import { AddDefaultRows } from "~/app/_components/base/AddDefaultRows";
 import { AirRow, Cell } from "~/types/base";
+import { MdDehaze } from "react-icons/md";
 
 interface BaseTableNavbarProps {
   tableId: string | null;
   globalFilter: string;
   setGlobalFilter: (value: string) => void;
   handleNewRow: (newRow: AirRow[]) => void;
+  handleSideBar: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-export function BaseTableNavbar({ tableId, globalFilter, setGlobalFilter, handleNewRow }: BaseTableNavbarProps) {
+export function BaseTableNavbar({ 
+  tableId, 
+  globalFilter, 
+  setGlobalFilter, 
+  handleNewRow,
+  handleSideBar
+}: BaseTableNavbarProps) {
 
   return (
     <header className="antialiased">
-      <nav className="w-full bg-white border border-t-0 border-gray px-2 lg:px-6 py-1 dark:bg-gray-800 z-50">
+      <nav className="w-full bg-white border border-t-0 border-gray py-1 dark:bg-gray-800 z-50">
           <div className="flex flex-wrap items-center">
               <div className="block flex flex-row">
+              <div className="border-r-2">
+                <Button 
+                  className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white mx-1"
+                  onClick={() => handleSideBar((prev: boolean) => !prev)}
+                >
+                  <MdDehaze className="mr-2 h-5 w-5" />
+                  Views
+                </Button>
+              </div>
               <Button className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white mx-1">
                 <FaRegEyeSlash className="mr-2 h-5 w-5" />
                 Hide fields

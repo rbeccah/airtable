@@ -9,6 +9,7 @@ import { BaseTableNavbar } from "~/app/_components/base/BaseTableNavbar";
 import { AirTable } from "~/app/_components/table/AirTable";
 import { AirRow, Cell, Table } from "~/types/base";
 import { api } from "~/trpc/react";
+import BaseSideBar from "~/app/_components/base/BaseSideBar";
 
 interface ApiResponse {
   success: boolean;
@@ -24,6 +25,7 @@ const Base = () => {
   const [selectedTableData, setSelectedTableData] = useState<Table | null>(null);
   const [globalFilter, setGlobalFilter] = useState("");
   const [newCells, setNewCells] = useState<AirRow[]>([]);
+  const [sideBar, setSideBar] = useState<boolean>(false);
 
   // Function to add a new table
   const createTableMutation = api.base.createTable.useMutation({
@@ -73,9 +75,12 @@ const Base = () => {
   return (
     <SaveProvider>
       <div className="h-screen flex flex-col bg-gray-100">
+        {/* Navbar */}
         <div className="fixed top-0 left-0 w-full z-50">
           <BaseNavbar />
         </div>
+
+        {/* Table Tabs Bar */}
         <div className="pt-14">
           <BaseTableTabsBar 
             baseId={baseId}
@@ -84,20 +89,31 @@ const Base = () => {
             onAddTable={handleAddTable}
           />
         </div>
+
+        {/* Base Table Navbar */}
         <BaseTableNavbar 
           tableId={selectedTableId}
           globalFilter={globalFilter} 
           setGlobalFilter={setGlobalFilter}
           handleNewRow={handleNewRow}
+          handleSideBar={setSideBar}
         />
-        <div className="bg-gray-100 h-full">
-          <AirTable
-            tableData={selectedTableData}
-            tableId={selectedTableId}
-            globalFilter={globalFilter}
-            setGlobalFilter={setGlobalFilter}
-            newRows={newCells}
-          />
+
+        {/* Main Content */}
+        <div className="flex">
+          {/* Sidebar Component */}
+          <BaseSideBar sideBar={sideBar} />
+
+          {/* Table Content */}
+          <div className={`transition-all duration-300 h-full bg-gray-100 ${sideBar ? 'ml-64' : ''} flex-1`}>
+            <AirTable
+              tableData={selectedTableData}
+              tableId={selectedTableId}
+              globalFilter={globalFilter}
+              setGlobalFilter={setGlobalFilter}
+              newRows={newCells}
+            />
+          </div>
         </div>
       </div>
     </SaveProvider>
