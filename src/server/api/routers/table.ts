@@ -41,4 +41,22 @@ export const tableRouter = createTRPCRouter({
         nextCursor,
       };
     }),
+
+  // Get table by id
+  getTableById: protectedProcedure
+    .input(z.object({ tableId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      const table = await ctx.prisma.table.findUnique({
+        where: { id: input.tableId },
+        include: {
+          columns: true, // Include column definitions
+        },
+      });
+
+      if (!table) {
+        throw new Error("Table not found");
+      }
+
+      return table;
+    }),
 });

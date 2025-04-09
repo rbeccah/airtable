@@ -29,7 +29,7 @@ export function HomeCreateBaseButton() {
       return;
     }
     
-    createBaseMutation.mutate({ name: "Untitled Base" });
+    createBaseMutation.mutate({ baseName: "Untitled Base" });
   };
 
   return (
