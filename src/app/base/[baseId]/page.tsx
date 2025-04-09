@@ -28,7 +28,6 @@ const Base = () => {
   // Function to add a new table
   const createTableMutation = api.base.createTable.useMutation({
     onSuccess: (newTable: Table) => {
-      // Add the new table to the state after successful creation
       setTables((prevTables) => [...prevTables, newTable]);
     },
     onError: (error) => {
@@ -40,26 +39,25 @@ const Base = () => {
     createTableMutation.mutate({ baseId });
   };
 
-  useEffect(() => {
-    const fetchTables = async () => {
-      try {
-        const res = await fetch(`/api/base?baseId=${baseId}`);
-        const data: ApiResponse = await res.json() as ApiResponse;
+  const fetchTables = async () => {
+    try {
+      const res = await fetch(`/api/base?baseId=${baseId}`);
+      const data: ApiResponse = await res.json();
 
-        if (data.success) {
-          setTables(data.tables);
-          if (data.tables.length > 0) {
-            setSelectedTableId(data.tables[0]?.id ?? null);
-            setSelectedTableData(data.tables[0] ?? null);
-          }
+      if (data.success) {
+        setTables(data.tables);
+        if (!selectedTableId || !data.tables.some((t) => t.id === selectedTableId)) {
+          setSelectedTableId(data.tables[0]?.id ?? null);
         }
-      } catch (error) {
-        console.error("Error fetching tables:", error);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching tables:", error);
+    }
+  };
 
+  useEffect(() => {
     fetchTables().catch(console.error);
-  }, [baseId]);
+  }, [baseId, selectedTableId]);
 
   useEffect(() => {
     if (selectedTableId) {
@@ -93,7 +91,7 @@ const Base = () => {
           handleNewRow={handleNewRow}
         />
         <div className="bg-gray-100 h-full">
-        <AirTable
+          <AirTable
             tableData={selectedTableData}
             tableId={selectedTableId}
             globalFilter={globalFilter}
