@@ -26,6 +26,7 @@ import { formatTableData, fuzzyFilter, fuzzySort, PAGE_SIZE } from "~/utils/tabl
 import { EditableCell } from "./EditableCell";
 import { ColumnHeader } from "./ColumnHeader";
 import { AddRowButton } from "./AddRowButton";
+import { render } from "react-dom";
 
 // Types
 declare module "@tanstack/react-table" {
@@ -43,14 +44,16 @@ declare module "@tanstack/react-table" {
 }
 
 // Main Component
-export const AirTable: React.FC<AirTableProps> = ({ 
+export const AirTable: React.FC<AirTableProps> = ({
   tableData, 
   tableId, 
-  globalFilter, 
-  setGlobalFilter, 
-  newRows 
+  handleTableColumns,
+  newRows,
+  viewId,
+  viewApply,
 }) => {
   const [columns, setColumns] = useState<ColumnDef<TableRow>[]>([]);
+  const [renderData, setRenderData] = useState<TableRow[]>([]);
   const tableContainerRef = useRef<HTMLDivElement>(null);
 
   // Virtualised Infinite Scrolling
@@ -60,7 +63,7 @@ export const AirTable: React.FC<AirTableProps> = ({
     {
       tableId: tableId ?? "",
       limit: PAGE_SIZE,
-      globalFilter,
+      viewId,
     },
     {
       getNextPageParam: (lastPage) => lastPage.nextCursor,
@@ -70,15 +73,23 @@ export const AirTable: React.FC<AirTableProps> = ({
   );
 
   // Flatten the data
-  const fetchedData = useMemo(() => {
-    const fetchedRows = data?.pages.flatMap(page => page.rows) ?? [];
-    const formattedFetchedRows = formatTableData(fetchedRows);
-    return formattedFetchedRows;
+  useEffect(() => {
+    if (data?.pages) {
+      const fetchedRows = data.pages.flatMap(page => page.rows) ?? [];
+      console.log("Formatted rows (before update):", fetchedRows);
+  
+      setRenderData((prevData) => {
+        console.log("Previous renderData:", prevData);
+        return [...formatTableData(fetchedRows)];
+      });
+  
+      rowVirtualizer.measure(); // Ensure virtualizer updates
+    }
   }, [data]);
   
   // Virtualizer
   const rowVirtualizer = useVirtualizer({
-    count: fetchedData.length,
+    count: renderData.length,
     getScrollElement: () => tableContainerRef.current,
     estimateSize: () => 50, // row height
     overscan: 10,
@@ -99,7 +110,6 @@ export const AirTable: React.FC<AirTableProps> = ({
     },
     [fetchNextPage, isFetching]
   );
-
 
   // API Functions
   const saveCellData = async (cellId: string, value: string) => {
@@ -148,6 +158,7 @@ export const AirTable: React.FC<AirTableProps> = ({
   
       // Update column definitions
       updateColumns(res.newColumn);
+      handleTableColumns(res.newColumn);
       // updateDataWithNewColumn(res.newColumn, res.newCells);
       
       // Invalidate & refetch table data to ensure new column updates all rows
@@ -227,9 +238,17 @@ export const AirTable: React.FC<AirTableProps> = ({
     fetchMoreOnBottomReached(tableContainerRef.current);
   }, [fetchMoreOnBottomReached]);
 
+  const prevViewApply = useRef(viewApply);
+  useEffect(() => {
+    if (prevViewApply.current !== viewApply) {
+      prevViewApply.current = viewApply; // Update the ref to the new value
+      window.location.reload();
+    }
+  }, [viewApply]);
+
   // Table Configuration
   const table = useReactTable({
-    data: fetchedData,
+    data: useMemo(() => renderData, [renderData]),
     columns,
     defaultColumn: {
       cell: ({ getValue, row, column, table }) => {
@@ -247,28 +266,26 @@ export const AirTable: React.FC<AirTableProps> = ({
         }
       },
     },
-    filterFns: { fuzzy: fuzzyFilter },
-    state: { globalFilter },
-    onGlobalFilterChange: setGlobalFilter,
-    globalFilterFn: fuzzyFilter,
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    filterFns: { fuzzy: fuzzyFilter },
   });
 
   const virtualRows = rowVirtualizer.getVirtualItems();
-  const paddingTop = virtualRows[0]?.start ?? 0;
+  const paddingTop = virtualRows.length > 0 ? virtualRows[0]!.start : 0;
   const paddingBottom = virtualRows.length > 0
     ? rowVirtualizer.getTotalSize() - (virtualRows[virtualRows.length - 1]?.end ?? 0)
-    : 0;
+    : 0
 
   // Render
   return (
     <div 
       ref={tableContainerRef}
+      key={`table-container-${viewId}-${viewApply}`}
       className="overflow-auto relative h-full border border-gray-200 rounded-lg"
       onScroll={() => fetchMoreOnBottomReached(tableContainerRef.current)}
     >
-      <div style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
+      <div style={{ height: `${rowVirtualizer.getTotalSize() + 100}px` }}>
         <table className="border-collapse">
           <thead className="sticky top-0 z-10 bg-gray-100">
             {table.getHeaderGroups().map(headerGroup => (

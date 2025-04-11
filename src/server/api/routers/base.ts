@@ -2,6 +2,7 @@ import { z } from "zod";
 import { prisma } from "~/lib/db";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { faker } from "@faker-js/faker";
+import { Prisma } from "@prisma/client";
 
 // Default data type structure
 type DefaultData = {
@@ -55,6 +56,13 @@ const createTableWithDefaultData = async (baseId: string, defaultData: DefaultDa
           },
         },
       },
+      views: {
+        include: {
+          sort: true,
+          columnVisibility: true,
+          filters: true,
+        }
+      },
     },
   });
   
@@ -83,6 +91,14 @@ const createTableWithDefaultData = async (baseId: string, defaultData: DefaultDa
     ),
   });
 
+  // Create a default view for the table
+  await prisma.view.create({
+    data: {
+      name: `Grid view`,
+      tableId: table.id,
+    },
+  });
+
   return table;
 };
 
@@ -92,7 +108,6 @@ export const baseRouter = createTRPCRouter({
     .mutation(async ({ input, ctx }) => {
       const { baseName } = input;
 
-      console.log(ctx.session.user.id);
       // Create base
       const base = await prisma.base.create({
         data: {

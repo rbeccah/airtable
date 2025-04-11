@@ -1,14 +1,14 @@
 "use client";
 
-import { Button, CustomFlowbiteTheme, Flowbite, Label, Select, TextInput } from "flowbite-react";
-import { FormEvent, useEffect, useState } from "react";
-import { IoMdAdd, IoMdClose } from "react-icons/io";
-import { IoFilterOutline } from "react-icons/io5";
-import { AirColumn } from "~/types/base";
-import { api } from "~/trpc/react";
 import { TRPCClientErrorLike } from "@trpc/client";
+import { Button, CustomFlowbiteTheme, Flowbite, Label, Select } from "flowbite-react";
+import { FormEvent, useEffect, useState } from "react";
+import { BiSortAlt2 } from "react-icons/bi";
+import { IoMdAdd, IoMdClose } from "react-icons/io";
 import { AppRouter } from "~/server/api/root";
-import { TextFilterConditions } from "~/types/view";
+import { api } from "~/trpc/react";
+import { AirColumn } from "~/types/base";
+import { TextSortConditions, NumSortConditions } from "~/types/view";
 
 interface Props {
   tableId: string,
@@ -17,21 +17,21 @@ interface Props {
   handleViewApply: () => void;
 }
 
-const TextFilterConditionsList: string[] = Object.values(TextFilterConditions);
-const conditionsByType: Record<string, string[]> = {
-  Text: TextFilterConditionsList,
-  Number: [">", "<"],
-};
-
-interface FilterCondition {
+interface SortCondition {
   column: string;
-  condition: string;
-  value: string;
+  order: string;
 }
 
-const BaseFilter: React.FC<Props> = ({ tableId, viewId, tableColumns, handleViewApply }) => {
+const TextSortConditionsList: string[] = Object.values(TextSortConditions);
+const NumSortConditionsList: string[] = Object.values(NumSortConditions);
+const conditionsByType: Record<string, string[]> = {
+  Text: TextSortConditionsList,
+  Number: NumSortConditionsList,
+};
+
+const BaseSort: React.FC<Props> = ({ tableId, viewId, tableColumns, handleViewApply }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [filters, setFilters] = useState<FilterCondition[]>([]);
+  const [sorts, setSorts] = useState<SortCondition[]>([]);
 
   const customTheme: CustomFlowbiteTheme = {
     dropdown: {
@@ -61,50 +61,50 @@ const BaseFilter: React.FC<Props> = ({ tableId, viewId, tableColumns, handleView
 
   useEffect(() => {
     if (existingConditions) {
-      setFilters(existingConditions.filters);
+      setSorts(existingConditions.sort);
     }
   }, [existingConditions, isLoading, isError]);
 
-  const addFilter = () => {
-    setFilters([...filters, { column: "", condition: "", value: "" }]);
+  const addSort = () => {
+    setSorts([...sorts, { column: "", order: "" }]);
   };
 
-  const removeFilter = (index: number) => {
-    setFilters(filters.filter((_, i) => i !== index));
+  const removeSort = (index: number) => {
+    setSorts(sorts.filter((_, i) => i !== index));
   };
 
-  const updateFilter = (index: number, key: keyof FilterCondition, value: string) => {
-    const updatedFilters = filters.map((filter, i) =>
+  const updateSort = (index: number, key: keyof SortCondition, value: string) => {
+    const updatedSorts = sorts.map((filter, i) =>
       i === index ? { ...filter, [key]: value } : filter
     );
-    setFilters(updatedFilters);
+    setSorts(updatedSorts);
   };
 
-  const addFilterViewMutation = api.view.updateFilter.useMutation({
-    onSuccess: (data) => {
-      handleViewApply();
-    },
-    onError: (error: TRPCClientErrorLike<AppRouter>) => {
-      console.error("Error adding filters to view:", error);
-    },
-  });
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    addFilterViewMutation.mutate({ tableId: tableId, view: {viewId, filters} });
-    setIsDropdownOpen(false);
-  };
+  const addSortMutation = api.view.updateSort.useMutation({
+      onSuccess: (data) => {
+        handleViewApply();
+      },
+      onError: (error: TRPCClientErrorLike<AppRouter>) => {
+        console.error("Error adding filters to view:", error);
+      },
+    });
+  
+    const handleSubmit = async (e: FormEvent) => {
+      e.preventDefault();
+      addSortMutation.mutate({ tableId: tableId, view: {viewId, sorts} });
+      setIsDropdownOpen(false);
+    };
 
   return (
     <Flowbite theme={{ theme: customTheme }}>
       <div className="relative">
         {/* Filter Button */}
-        <Button
+        <Button 
           className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white mx-1"
           onClick={() => setIsDropdownOpen((prev) => !prev)}
         >
-          <IoFilterOutline className="mr-2 h-5 w-5" />
-          Filter
+          <BiSortAlt2 className="mr-2 h-5 w-5" />
+          Sort
         </Button>
 
         {isDropdownOpen && (
@@ -113,16 +113,16 @@ const BaseFilter: React.FC<Props> = ({ tableId, viewId, tableColumns, handleView
               <Label value="In this view, show records where" />
 
               {/* Dynamic Filters */}
-              {filters.map((filter, index) => {
-                const column = tableColumns.find((col) => col.id === filter.column);
+              {sorts.map((sort, index) => {
+                const column = tableColumns.find((col) => col.id === sort.column);
                 const availableConditions = column ? conditionsByType[column.type] || [] : [];
 
                 return (
                   <div key={index} className="flex gap-2 items-center w-full">
                     {/* Column Selector */}
                     <Select
-                      value={filter.column}
-                      onChange={(e) => updateFilter(index, "column", e.target.value)}
+                      value={sort.column}
+                      onChange={(e) => updateSort(index, "column", e.target.value)}
                       className="w-1/3"
                       required
                     >
@@ -136,11 +136,11 @@ const BaseFilter: React.FC<Props> = ({ tableId, viewId, tableColumns, handleView
 
                     {/* Condition Selector */}
                     <Select
-                      value={filter.condition}
-                      onChange={(e) => updateFilter(index, "condition", e.target.value)}
+                      value={sort.order}
+                      onChange={(e) => updateSort(index, "order", e.target.value)}
                       className="w-1/3"
                       required
-                      disabled={!filter.column}
+                      disabled={!sort.column}
                     >
                       <option value="" disabled>Select Condition</option>
                       {availableConditions.map((cond) => (
@@ -150,18 +150,8 @@ const BaseFilter: React.FC<Props> = ({ tableId, viewId, tableColumns, handleView
                       ))}
                     </Select>
 
-                    {/* Value Input */}
-                    <TextInput
-                      type={column?.type === "Number" ? "number" : "text"}
-                      value={filter.value}
-                      onChange={(e) => updateFilter(index, "value", e.target.value)}
-                      className="w-1/3"
-                      required={!["is empty", "is not empty"].includes(filter.condition)}
-                      disabled={["is empty", "is not empty"].includes(filter.condition)}
-                    />
-
-                    {/* Remove Filter Button */}
-                    <Button size="xs" color="red" onClick={() => removeFilter(index)}>
+                    {/* Remove Sort Button */}
+                    <Button size="xs" color="red" onClick={() => removeSort(index)}>
                       <IoMdClose />
                     </Button>
                   </div>
@@ -169,15 +159,15 @@ const BaseFilter: React.FC<Props> = ({ tableId, viewId, tableColumns, handleView
               })}
 
               <div className="flex flex-row self-end">
-                {/* Add Filter Button */}
-                <Button className="self-start mt-4 mr-5" color="white" onClick={addFilter} type="button">
+                {/* Add Sort Button */}
+                <Button className="self-start mt-4 mr-5" color="white" onClick={addSort} type="button">
                   <IoMdAdd className="mr-2 h-5 w-5" />
-                  Add Filter
+                  Add another sort
                 </Button>
 
                 {/* Apply Filters Button */}
                 <Button className="self-end mt-4" color="blue" type="submit">
-                  Apply Filters
+                  Apply sort
                 </Button>
               </div>
             </form>
@@ -188,4 +178,4 @@ const BaseFilter: React.FC<Props> = ({ tableId, viewId, tableColumns, handleView
   );
 }
 
-export default BaseFilter;
+export default BaseSort;

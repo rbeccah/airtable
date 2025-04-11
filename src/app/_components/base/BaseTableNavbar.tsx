@@ -7,23 +7,32 @@ import { BiSortAlt2 } from "react-icons/bi";
 import { MdOutlinePlaylistAdd } from "react-icons/md";
 import { useSave } from "~/app/_context/SaveContext";
 import { AddDefaultRows } from "~/app/_components/base/AddDefaultRows";
-import { AirRow, Cell } from "~/types/base";
+import { AirColumn, AirRow } from "~/types/base";
 import { MdDehaze } from "react-icons/md";
+import BaseFilter from "./BaseFilter";
+import BaseSort from "./BaseSort";
+import BaseHide from "./BaseHide";
 
 interface BaseTableNavbarProps {
   tableId: string | null;
+  viewId: string | null | undefined;
+  tableColumns: AirColumn[];
   globalFilter: string;
   setGlobalFilter: (value: string) => void;
   handleNewRow: (newRow: AirRow[]) => void;
   handleSideBar: React.Dispatch<React.SetStateAction<boolean>>;
+  handleViewApply: () => void;
 }
 
-export function BaseTableNavbar({ 
+export function BaseTableNavbar({
   tableId, 
+  viewId,
+  tableColumns,
   globalFilter, 
   setGlobalFilter, 
   handleNewRow,
-  handleSideBar
+  handleSideBar,
+  handleViewApply
 }: BaseTableNavbarProps) {
 
   return (
@@ -40,18 +49,24 @@ export function BaseTableNavbar({
                   Views
                 </Button>
               </div>
-              <Button className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white mx-1">
-                <FaRegEyeSlash className="mr-2 h-5 w-5" />
-                Hide fields
-              </Button>
-              <Button className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white mx-1">
-                <IoFilterOutline className="mr-2 h-5 w-5" />
-                Filter
-              </Button>
-              <Button className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white mx-1">
-                <BiSortAlt2 className="mr-2 h-5 w-5" />
-                Sort
-              </Button>
+              <BaseHide 
+                tableId={tableId!}
+                viewId={viewId!} 
+                tableColumns={tableColumns!}
+                handleViewApply={handleViewApply}
+              />
+              <BaseFilter 
+                tableId={tableId!}
+                viewId={viewId!} 
+                tableColumns={tableColumns!}
+                handleViewApply={handleViewApply}
+              />
+              <BaseSort 
+                tableId={tableId!}
+                viewId={viewId!} 
+                tableColumns={tableColumns!}
+                handleViewApply={handleViewApply}
+              />
               <AddDefaultRows tableId={tableId} handleNewRow={handleNewRow} />
               </div>
               <div className="ml-auto flex items-center lg:order-2">

@@ -104,6 +104,7 @@ export async function GET(req: Request) {
             },
           },
         },
+        views: true,
       },
     });
 

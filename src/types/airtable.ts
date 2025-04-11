@@ -1,6 +1,7 @@
 import { FilterFn } from "@tanstack/react-table";
 import { AirColumn, AirRow, Cell, Table } from "./base";
 import { RankingInfo } from "@tanstack/match-sorter-utils";
+import { Dispatch, SetStateAction } from "react";
 
 export type TableRow = {
   rowId: string;
@@ -9,9 +10,12 @@ export type TableRow = {
 export interface AirTableProps {
   tableData: Table | null;
   tableId: string | null;
+  handleTableColumns: (newColumn: AirColumn) => void;
   globalFilter: string;
   setGlobalFilter: (value: string) => void;
   newRows: AirRow[];
+  viewId: string;
+  viewApply: boolean;
 }
 
 export interface AddColumnResponse {
