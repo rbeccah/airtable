@@ -11,8 +11,8 @@ export interface AirTableProps {
   tableData: Table | null;
   tableId: string | null;
   handleTableColumns: (newColumn: AirColumn) => void;
-  globalFilter: string;
-  setGlobalFilter: (value: string) => void;
+  searchString: string;
+  setSearchString: (value: string) => void;
   newRows: AirRow[];
   viewId: string;
   viewApply: boolean;

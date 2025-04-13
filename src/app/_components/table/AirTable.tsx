@@ -31,14 +31,8 @@ import { AddRowButton } from "./AddRowButton";
 declare module "@tanstack/react-table" {
   interface TableMeta<TData extends RowData> {
     updateData: (rowIndex: number, columnId: string, value: unknown) => void;
-  }
-  
-  interface FilterFns {
-    fuzzy: FilterFn<unknown>;
-  }
-  
-  interface FilterMeta {
-    itemRank: RankingInfo;
+    matchedCellMap: Set<string>;
+    renderData: TableRow[];
   }
 }
 
@@ -47,6 +41,8 @@ export const AirTable: React.FC<AirTableProps> = ({
   tableData, 
   tableId, 
   handleTableColumns,
+  searchString,
+  setSearchString,
   newRows,
   viewId,
   viewApply,
@@ -55,6 +51,27 @@ export const AirTable: React.FC<AirTableProps> = ({
   const [renderData, setRenderData] = useState<TableRow[]>([]);
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const [hiddenColumns, setHiddenColumns] = useState<Record<string, boolean>>({});
+
+  // Search functionality
+  const { data: matchedCells } = api.table.searchTable.useQuery(
+    {
+      tableId: tableId ?? "",
+      searchString,
+    },
+    {
+      enabled: !!tableId,
+    }
+  );
+  
+  const matchedCellMap = useMemo(() => {
+    const map = new Set<string>();
+    if (matchedCells) {
+      matchedCells.forEach((cell) => {
+        map.add(`${cell.id}`);
+      });
+    }
+    return map;
+  }, [matchedCells]);
 
   // Virtualised Infinite Scrolling
   // tRPC infinite query
@@ -76,7 +93,6 @@ export const AirTable: React.FC<AirTableProps> = ({
   useEffect(() => {
     if (data?.pages) {
       const fetchedRows = data.pages.flatMap(page => page.rows) ?? [];
-      console.log(fetchedRows);
   
       setRenderData((prevData) => {
         return [...formatTableData(fetchedRows)];
@@ -191,9 +207,12 @@ export const AirTable: React.FC<AirTableProps> = ({
     sortingFn: fuzzySort,
     header: () => <ColumnHeader type={col.type} name={col.name} />,
     cell: ({ row, column, table }) => {
-      const cellData = row.original[column.id];
+      const rowData = table.options.meta?.renderData[row.index]; // Access the row data using row.index
+      const cellData = rowData?.[column.id];
+
       const columnType = tableData?.columns.find(c => c.id === column.id)?.type ?? "Text";
-  
+      const isMatched = table.options.meta?.matchedCellMap?.has(row.original[column.id]?.id!);
+
       return (
         <EditableCell
           cellData={cellData ?? { id: "", value: "" }}
@@ -202,6 +221,7 @@ export const AirTable: React.FC<AirTableProps> = ({
             table.options.meta?.updateData?.(row.index, column.id, newValue);
           }}
           onSaveCell={(cellId, value) => saveCellData(cellId, value)}
+          isMatched={isMatched}
         />
       );
     },
@@ -283,6 +303,8 @@ export const AirTable: React.FC<AirTableProps> = ({
           void saveCellData(row[columnId].id, String(value));
         }
       },
+      matchedCellMap,
+      renderData,
     },
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),

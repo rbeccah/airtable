@@ -84,6 +84,7 @@ const createTableWithDefaultData = async (baseId: string, defaultData: DefaultDa
   await prisma.cell.createMany({
     data: createdRows.flatMap((row, i) => 
       table.columns.map(column => ({
+        tableId: table.id,
         columnId: column.id,
         rowId: row.id,
         value: String(defaultData[i]![column.name as keyof typeof defaultData[0]] || ""),

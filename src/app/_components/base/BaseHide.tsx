@@ -45,13 +45,16 @@ const BaseHide: React.FC<Props> = ({ tableId, viewId, tableColumns, handleViewAp
   const { data: existingConditions, isLoading, isError } = api.view.getViewById.useQuery(viewId);
 
   useEffect(() => {
+    // Set the visibility map if we already have conditions for the current view
     if (existingConditions?.columnVisibility) {
       const visibilityMap = Object.fromEntries(
         existingConditions.columnVisibility.map((c) => [c.columnId, !c.isVisible])
       );
       setHiddenColumns(visibilityMap);
+    } else {
+
     }
-  }, [existingConditions, isLoading, isError]);
+  }, [existingConditions, tableColumns]);
 
   const toggleColumnVisibility = (columnId: string) => {
     setHiddenColumns((prev) => ({

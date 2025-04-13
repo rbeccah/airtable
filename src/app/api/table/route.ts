@@ -100,6 +100,7 @@ async function addColumn(body: Pick<RequestBody, "tableId" | "columnName" | "col
     // Batch insert new cells using createMany
     await prisma.cell.createMany({
       data: rowIds.map(row => ({
+        tableId: tableId,
         columnId: newColumn.id,
         rowId: row.id,
         value: "", // Default empty value
@@ -158,6 +159,7 @@ async function addRow(body: Pick<RequestBody, "tableId" | "numRows">) {
     // 3. Create all cells in bulk
     const cellsData = createdRowIds.flatMap(rowId =>
       columns.map(column => ({
+        tableId: tableId,
         columnId: column.id,
         rowId,
         value: generateDefaultValue(column.name),

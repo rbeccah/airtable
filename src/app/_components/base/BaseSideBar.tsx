@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import { CustomFlowbiteTheme, Flowbite, Sidebar, SidebarItem, SidebarItemGroup, SidebarItems } from "flowbite-react";
 import { TbLayoutGridRemove } from "react-icons/tb";
 import { api } from "~/trpc/react";
@@ -10,22 +10,22 @@ import { SideBarView } from "~/types/base";
 interface Props {
   sideBar: boolean;
   tableId: string;
-  setSelectedViewId: (id: string) => void;
   selectedViewId: string;
+  setViewMap: Dispatch<SetStateAction<Record<string, string>>>;
 }
 
-const BaseSideBar: React.FC<Props> = ({ sideBar, tableId, setSelectedViewId, selectedViewId }) => {
+const BaseSideBar: React.FC<Props> = ({ sideBar, tableId, selectedViewId, setViewMap }) => {
   const [views, setViews] = useState<SideBarView[]>([]);
-
   const { data, refetch } = api.view.getViewsForSideBar.useQuery(tableId);
 
-  const customTheme: CustomFlowbiteTheme = {
-    // sidebar: {
-    //   item: {
+  const customTheme: CustomFlowbiteTheme = {}
 
-    //   }
-    // }
-  }
+  const handleSelectView = (viewId: string) => {
+    setViewMap((prev) => ({
+      ...prev,
+      [tableId]: viewId,
+    }));
+  };
   
   return (
     <Flowbite theme={{ theme: customTheme }}>
@@ -41,7 +41,7 @@ const BaseSideBar: React.FC<Props> = ({ sideBar, tableId, setSelectedViewId, sel
             {data?.map((view) => (
               <SidebarItem 
                 key={view.id} 
-                onClick={() => setSelectedViewId(view.id)}
+                onClick={() => handleSelectView(view.id)}
                 className={view.id === selectedViewId ? "bg-blue-100 text-blue-700" : ""}
               >
                 {view.name}

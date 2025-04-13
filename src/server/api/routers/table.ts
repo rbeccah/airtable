@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, protectedProcedure, publicProcedure } from "~/server/api/trpc";
 import { prisma } from "~/lib/db";
 import { FilterType, NumSortConditions, TextFilterConditions, TextSortConditions } from "~/types/view";
 
@@ -166,4 +166,36 @@ export const tableRouter = createTRPCRouter({
 
       return table;
     }),
+
+  // Search table
+  searchTable: publicProcedure
+    .input(z.object({ 
+      tableId: z.string(), 
+      searchString: z.string() 
+    }))
+    .query(async ({ input, ctx }) => {
+      const { tableId, searchString } = input;
+
+      if (!searchString.trim()) {
+        return []; // return nothing if search string is empty or just whitespace
+      }
+
+      const targetCells = await ctx.prisma.cell.findMany({
+        where: {
+          tableId,
+          value: {
+            contains: searchString,
+            mode: "insensitive", // case-insensitive search
+          },
+        },
+        select: {
+          id: true,
+          value: true,
+          rowId: true,
+          columnId: true,
+        },
+      });
+
+      return targetCells;
+    })
 });

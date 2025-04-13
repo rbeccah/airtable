@@ -24,16 +24,51 @@ const Base = () => {
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [selectedTableData, setSelectedTableData] = useState<Table | null>(null);
   const [selectedTableColumns, setSelectedTableColumns] = useState<AirColumn[]>();
-  const [selectedViewId, setSelectedViewId] = useState<string | null>();
-  const [globalFilter, setGlobalFilter] = useState("");
+  // const [selectedViewId, setSelectedViewId] = useState<string | null>();
+  const [searchString, setSearchString] = useState("");
   const [newCells, setNewCells] = useState<AirRow[]>([]);
   const [sideBar, setSideBar] = useState<boolean>(false);
   const [viewApplied, setViewApplied] = useState(false);
+
+  // View ID functionality
+  const [viewMap, setViewMap] = useState<Record<string, string>>({});
+  const selectedViewId = selectedTableId ? viewMap[selectedTableId] : null;
+
+  useEffect(() => {
+    // fallback if no tables
+    if (tables.length === 0) return;
+  
+    // set default table if none selected
+    let tableId = selectedTableId;
+    if (!tableId || !tables.some((t) => t.id === tableId)) {
+      tableId = tables[0]!.id;
+      setSelectedTableId(tableId);
+    }
+  
+    // find the actual table
+    const table = tables.find((t) => t.id === tableId);
+    if (!table) return;
+  
+    setSelectedTableData(table);
+    setSelectedTableColumns(table.columns);
+  
+    // find view from map or default to first view
+    const viewId = viewMap[table.id] || table.views[0]?.id || null;
+  
+    if (!viewId) return;
+    setViewMap((prev) => ({ ...prev, [table.id]: viewId }));
+  }, [tables, selectedTableId]);
 
   // Function to add a new table
   const createTableMutation = api.base.createTable.useMutation({
     onSuccess: (newTable: Table) => {
       setTables((prevTables) => [...prevTables, newTable]);
+      if (newTable.views.length > 0) {
+        setViewMap((prev) => ({
+          ...prev,
+          [newTable.id]: newTable.views[0]!.id,
+        }));
+      }
     },
     onError: (error) => {
       console.error("Error creating table:", error);
@@ -52,8 +87,14 @@ const Base = () => {
       if (data.success) {
         setTables(data.tables);
         if (!selectedTableId || !data.tables.some((t) => t.id === selectedTableId)) {
-          setSelectedTableId(data.tables[0]?.id ?? null);
-          setSelectedViewId(data.tables[0]?.views[0]?.id ?? null);
+          const firstTable = data.tables[0];
+          if (firstTable) {
+            setSelectedTableId(firstTable.id);
+            setViewMap((prev) => ({
+              ...prev,
+              [firstTable.id]: firstTable.views[0]?.id!,
+            }));
+          }
         }
       }
     } catch (error) {
@@ -107,8 +148,8 @@ const Base = () => {
         <BaseTableNavbar 
           tableId={selectedTableId}
           viewId={selectedViewId}
-          globalFilter={globalFilter} 
-          setGlobalFilter={setGlobalFilter}
+          searchString={searchString} 
+          setSearchString={setSearchString}
           handleNewRow={handleNewRow}
           handleSideBar={setSideBar}
           tableColumns={selectedTableColumns!}
@@ -121,7 +162,7 @@ const Base = () => {
           <BaseSideBar 
             sideBar={sideBar} 
             tableId={selectedTableId!} 
-            setSelectedViewId={setSelectedViewId}
+            setViewMap={setViewMap}
             selectedViewId={selectedViewId!}
           />
 
@@ -133,8 +174,8 @@ const Base = () => {
                 tableData={selectedTableData}
                 tableId={selectedTableId}
                 handleTableColumns={handleUpdatingNewColumn}
-                globalFilter={globalFilter}
-                setGlobalFilter={setGlobalFilter}
+                searchString={searchString}
+                setSearchString={setSearchString}
                 newRows={newCells}
                 viewId={selectedViewId}
                 viewApply={viewApplied}
