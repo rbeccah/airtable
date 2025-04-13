@@ -81,6 +81,7 @@ export const AirTable: React.FC<AirTableProps> = ({
       tableId: tableId ?? "",
       limit: PAGE_SIZE,
       viewId,
+      viewApply
     },
     {
       getNextPageParam: (lastPage) => lastPage.nextCursor,
@@ -266,6 +267,7 @@ export const AirTable: React.FC<AirTableProps> = ({
   // }, [viewApply]);
 
   useEffect(() => {
+    setRenderData([]);
     void refetch();
   }, [viewApply]);
 

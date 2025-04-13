@@ -10,7 +10,7 @@ export const tableRouter = createTRPCRouter({
       cursor: z.string().nullish(),
       limit: z.number().min(1).max(100).default(50),
       viewId: z.string(),
-      // search: z.string().optional(),
+      viewApply: z.boolean(),
     }))
     .query(async ({ input, ctx }) => {
       const { tableId, cursor, limit, viewId } = input;

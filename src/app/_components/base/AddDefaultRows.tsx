@@ -9,6 +9,7 @@ import {
   CustomFlowbiteTheme,
   Flowbite,
   Select,
+  Spinner,
 } from "flowbite-react";
 import { MdOutlinePlaylistAdd } from "react-icons/md"
 import { IoMdAdd } from "react-icons/io";
@@ -28,6 +29,7 @@ interface ApiResponse {
 export function AddDefaultRows({ tableId, handleNewRow }: AddDefaultRowsProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [numRows, setNumRows] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
   const customTheme: CustomFlowbiteTheme = {
     dropdown: {
@@ -55,24 +57,31 @@ export function AddDefaultRows({ tableId, handleNewRow }: AddDefaultRowsProps) {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (numRows <= 0) return;
+    if (numRows <= 0 || !tableId) return;
 
-    const response = await fetch("/api/table", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "addRow",
-        tableId,
-        numRows,
-      }),
-    });
+    setIsLoading(true);
 
-    const result = await response.json() as ApiResponse;
-    if (result.success && result.newRows) {
-      handleNewRow(result.newRows); // Update table when new row is added
+    try {
+      const response = await fetch("/api/table", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "addRow",
+          tableId,
+          numRows,
+        }),
+      });
+
+      const result = await response.json() as ApiResponse;
+      if (result.success && result.newRows) {
+        handleNewRow(result.newRows); // Update table when new row is added
+      }
+    } catch (error) {
+      console.error("Error adding rows:", error);
+    } finally {
+      setIsLoading(false);
+      setIsDropdownOpen(false);
     }
-
-    setIsDropdownOpen(false);
   };
 
   return (
@@ -82,6 +91,7 @@ export function AddDefaultRows({ tableId, handleNewRow }: AddDefaultRowsProps) {
         <Button 
           className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white"
           onClick={() => setIsDropdownOpen((prev) => !prev)} 
+          disabled={isLoading}
         >
           <MdOutlinePlaylistAdd className="mr-2 h-5 w-5" />
           Add Default Rows
@@ -101,10 +111,21 @@ export function AddDefaultRows({ tableId, handleNewRow }: AddDefaultRowsProps) {
                 onKeyDown={(e) => e.stopPropagation()}
                 onChange={(e) => setNumRows(parseInt(e.target.value))}
                 required 
+                disabled={isLoading}
               />
-              <Button className="self-end" color="blue" type="submit">
-                <IoMdAdd className="mr-2 h-5 w-5" />
-                Add rows
+
+              <Button className="self-end" color="blue" type="submit" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Spinner size="sm" light className="mr-2" />
+                    Adding...
+                  </>
+                ) : (
+                  <>
+                    <IoMdAdd className="mr-2 h-5 w-5" />
+                    Add rows
+                  </>
+                )}
               </Button>
             </form>
           </div>
