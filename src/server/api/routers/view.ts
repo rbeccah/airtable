@@ -26,78 +26,27 @@ export const viewSchema = z.object({
 export const viewRouter = createTRPCRouter({
   // Create view 
   createView: publicProcedure
-    .input(
-      z.object({
-        tableId: z.string(),
-        name: z.string(),
-        filters: z
-          .array(
-            z.object({
-              column: z.string(),
-              value: z.string(),
-              operator: z.string(),
-            })
-          )
-          .default([]),
-        sort: z
-          .array(
-            z.object({
-              column: z.string(),
-              order: z.string(),
-            })
-          )
-          .default([]),
-        columnVisibility: z
-          .array(
-            z.object({
-              columnId: z.string(),
-              isVisible: z.boolean(),
-            })
-          )
-          .default([]),
-      })
-    )
-    .mutation(async ({ input }) => {
-      const { tableId, name, filters, sort, columnVisibility } = input;
+  .input(
+    z.object({
+      tableId: z.string(),
+    })
+  )
+  .mutation(async ({ input }) => {
+    const { tableId } = input;
 
-      // Create the view record first
-      const view = await prisma.view.create({
-        data: {
-          name,
-          tableId,
-        },
-      });
+    // Count current number of views for the table
+    const viewCount = await prisma.view.count({
+      where: { tableId },
+    });
 
-      // Insert filter conditions into the FilterCondition table
-      await prisma.filterCondition.createMany({
-        data: filters.map((filter) => ({
-          viewId: view.id,
-          column: filter.column,
-          condition: filter.operator,
-          value: filter.value,
-        })),
-      });
-
-      // Insert sort conditions into the SortCondition table
-      await prisma.sortCondition.createMany({
-        data: sort.map((sortItem) => ({
-          viewId: view.id,
-          column: sortItem.column,
-          order: sortItem.order,
-        })),
-      });
-
-      // Insert column visibility into the ColumnVisibility table
-      await prisma.columnVisibility.createMany({
-        data: columnVisibility.map((colVisibility) => ({
-          viewId: view.id,
-          columnId: colVisibility.columnId,
-          isVisible: colVisibility.isVisible,
-        })),
-      });
-
-      return view;
-    }),
+    // Create the new view with incremented name
+    await prisma.view.create({
+      data: {
+        name: `Grid view ${viewCount + 1}`,
+        tableId,
+      },
+    });
+  }),
 
   // Fetch views for a specific table
   getViewsByTableId: publicProcedure
@@ -112,6 +61,19 @@ export const viewRouter = createTRPCRouter({
           sort: true,
           columnVisibility: true,
         }
+      });
+
+      return views;
+    }),
+
+  // Fetch views for a specific table
+  getViewsForSideBar: publicProcedure
+    .input(z.string()) // Table ID as input
+    .query(async ({ input }) => {
+      const views = await prisma.view.findMany({
+        where: {
+          tableId: input, // Filter views by table ID
+        },
       });
 
       return views;

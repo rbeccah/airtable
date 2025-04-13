@@ -237,17 +237,17 @@ export const AirTable: React.FC<AirTableProps> = ({
     fetchMoreOnBottomReached(tableContainerRef.current);
   }, [fetchMoreOnBottomReached]);
 
-  const prevViewApply = useRef(viewApply);
-  useEffect(() => {
-    if (prevViewApply.current !== viewApply) {
-      prevViewApply.current = viewApply; // Update the ref to the new value
-      window.location.reload();
-    }
-  }, [viewApply]);
-
+  // const prevViewApply = useRef(viewApply);
   // useEffect(() => {
-  //   void refetch();
+  //   if (prevViewApply.current !== viewApply) {
+  //     prevViewApply.current = viewApply; // Update the ref to the new value
+  //     window.location.reload();
+  //   }
   // }, [viewApply]);
+
+  useEffect(() => {
+    void refetch();
+  }, [viewApply]);
 
   const { data: existingConditions, isError } = api.view.getViewById.useQuery(viewId);
 

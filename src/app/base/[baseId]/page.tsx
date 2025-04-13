@@ -61,18 +61,6 @@ const Base = () => {
     }
   };
 
-  useEffect(() => {
-    fetchTables().catch(console.error);
-  }, [baseId, selectedTableId, selectedViewId]);
-
-  useEffect(() => {
-    if (selectedTableId) {
-      const tableData = tables.find((table) => table.id === selectedTableId) ?? null;
-      setSelectedTableData(tableData);
-      setSelectedTableColumns(tableData?.columns);
-    }
-  }, [selectedTableId, tables]);
-
   const handleNewRow = (newCells: AirRow[]) => {
     setNewCells(newCells);
   };
@@ -84,6 +72,18 @@ const Base = () => {
   const handleViewApply = () => {
     setViewApplied(prev => !prev);
   };
+
+  useEffect(() => {
+    fetchTables().catch(console.error);
+  }, [baseId, selectedTableId, selectedViewId]);
+
+  useEffect(() => {
+    if (selectedTableId) {
+      const tableData = tables.find((table) => table.id === selectedTableId) ?? null;
+      setSelectedTableData(tableData);
+      setSelectedTableColumns(tableData?.columns);
+    }
+  }, [selectedTableId, tables]);
 
   return (
     <SaveProvider>
@@ -116,15 +116,20 @@ const Base = () => {
         />
 
         {/* Main Content */}
-        <div className="flex">
+        <div className="flex h-full">
           {/* Sidebar Component */}
-          <BaseSideBar sideBar={sideBar} />
+          <BaseSideBar 
+            sideBar={sideBar} 
+            tableId={selectedTableId!} 
+            setSelectedViewId={setSelectedViewId}
+            selectedViewId={selectedViewId!}
+          />
 
           {/* Table Content */}
           <div className={`transition-all duration-300 h-full bg-gray-100 ${sideBar ? 'ml-64' : ''} flex-1`}>
             {selectedTableId && selectedViewId ? (
               <AirTable
-                // key={viewApplied ? "view-true" : "view-false"}
+                key={viewApplied ? "view-true" : "view-false"}
                 tableData={selectedTableData}
                 tableId={selectedTableId}
                 handleTableColumns={handleUpdatingNewColumn}

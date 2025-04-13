@@ -88,7 +88,7 @@ const BaseHide: React.FC<Props> = ({ tableId, viewId, tableColumns, handleViewAp
         </Button>
 
         {isDropdownOpen && (
-          <div className="absolute mt-2 z-20 bg-white shadow-lg rounded-lg p-3 w-[300px]">
+          <div className="absolute mt-2 z-40 bg-white shadow-lg rounded-lg p-3 w-[300px]">
             <form onSubmit={handleSubmit} className="flex flex-col gap-4 items-start">
               <Label value="In this view, show following columns" />
 

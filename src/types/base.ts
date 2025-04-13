@@ -49,6 +49,14 @@ export interface View {
   updatedAt: Date;
 }
 
+export interface SideBarView {
+  tableId: string;
+  name: string;
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface SortCondition {
   id: string,
   column: string,
