@@ -22,7 +22,7 @@ import {
   ApiResponse, 
   TableRow 
 } from "~/types/airtable";
-import { formatTableData, fuzzyFilter, fuzzySort, PAGE_SIZE } from "~/utils/table-utils";
+import { formatTableData, PAGE_SIZE } from "~/utils/table-utils";
 import { EditableCell } from "./EditableCell";
 import { ColumnHeader } from "./ColumnHeader";
 import { AddRowButton } from "./AddRowButton";
@@ -203,9 +203,7 @@ export const AirTable: React.FC<AirTableProps> = ({
 
   const createColumnDef = (col: { id: string; name: string; type: string }): ColumnDef<TableRow> => ({
     accessorKey: col.id,
-    filterFn: fuzzyFilter,
     accessorFn: (row) => row[col.id]?.value ?? "",
-    sortingFn: fuzzySort,
     header: () => <ColumnHeader type={col.type} name={col.name} />,
     cell: ({ row, column, table }) => {
       const rowData = table.options.meta?.renderData[row.index]; // Access the row data using row.index
@@ -316,7 +314,6 @@ export const AirTable: React.FC<AirTableProps> = ({
     },
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    filterFns: { fuzzy: fuzzyFilter },
   });
 
   const virtualRows = rowVirtualizer.getVirtualItems();
