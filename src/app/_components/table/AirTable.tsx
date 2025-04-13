@@ -178,7 +178,7 @@ export const AirTable: React.FC<AirTableProps> = ({
       // updateDataWithNewColumn(res.newColumn, res.newCells);
       
       // Invalidate & refetch table data to ensure new column updates all rows
-      await refetch();
+      void refetch();
     } catch (error) {
       console.error("Error adding column:", error);
     }
@@ -212,7 +212,8 @@ export const AirTable: React.FC<AirTableProps> = ({
       const cellData = rowData?.[column.id];
 
       const columnType = tableData?.columns.find(c => c.id === column.id)?.type ?? "Text";
-      const isMatched = table.options.meta?.matchedCellMap?.has(row.original[column.id]?.id!);
+      const cellId = row.original[column.id]?.id;
+      const isMatched = cellId ? table.options.meta?.matchedCellMap?.has(cellId) : false;
 
       return (
         <EditableCell
@@ -242,6 +243,7 @@ export const AirTable: React.FC<AirTableProps> = ({
 
   // Effects
   // Update local rows when newRows prop changes
+  const { data: existingConditions, isError } = api.view.getViewById.useQuery(viewId);
   useEffect(() => {
     if (newRows.length > 0) {
       // Refetch data to ensure consistency
@@ -250,9 +252,15 @@ export const AirTable: React.FC<AirTableProps> = ({
   }, [newRows, refetch]);
 
   useEffect(() => {
-    if (!tableData) return;
+    if (!tableData || !existingConditions) return;
+  
+    const visibilityMap = Object.fromEntries(
+      existingConditions.columnVisibility.map((c) => [c.columnId, c.isVisible])
+    );
+  
+    setHiddenColumns(visibilityMap);
     setColumns(generateColumns(tableData.columns));
-  }, [tableData]);
+  }, [tableData, existingConditions]);
 
   useEffect(() => {
     fetchMoreOnBottomReached(tableContainerRef.current);
@@ -270,8 +278,6 @@ export const AirTable: React.FC<AirTableProps> = ({
     setRenderData([]);
     void refetch();
   }, [viewApply]);
-
-  const { data: existingConditions, isError } = api.view.getViewById.useQuery(viewId);
 
   useEffect(() => {
     if (existingConditions?.columnVisibility) {

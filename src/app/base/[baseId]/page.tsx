@@ -31,7 +31,7 @@ const Base = () => {
   const [viewApplied, setViewApplied] = useState(false);
 
   // View ID functionality
-  const [viewMap, setViewMap] = useState<Record<string, string>>({});
+  const [viewMap, setViewMap] = useState<Record<string, string | null>>({});
   const selectedViewId = selectedTableId ? viewMap[selectedTableId] : null;
 
   useEffect(() => {
@@ -53,7 +53,7 @@ const Base = () => {
     setSelectedTableColumns(table.columns);
   
     // find view from map or default to first view
-    const viewId = viewMap[table.id] || table.views[0]?.id || null;
+    const viewId = viewMap[table.id] ?? table.views[0]?.id ?? null;
   
     if (!viewId) return;
     setViewMap((prev) => ({ ...prev, [table.id]: viewId }));
@@ -92,7 +92,7 @@ const Base = () => {
             setSelectedTableId(firstTable.id);
             setViewMap((prev) => ({
               ...prev,
-              [firstTable.id]: firstTable.views[0]?.id!,
+              [firstTable.id]: firstTable.views[0]?.id ?? null,  // Or any default value you prefer
             }));
           }
         }

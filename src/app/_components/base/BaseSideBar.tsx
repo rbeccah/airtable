@@ -11,7 +11,7 @@ interface Props {
   sideBar: boolean;
   tableId: string;
   selectedViewId: string;
-  setViewMap: Dispatch<SetStateAction<Record<string, string>>>;
+  setViewMap: Dispatch<SetStateAction<Record<string, string | null>>>;
 }
 
 const BaseSideBar: React.FC<Props> = ({ sideBar, tableId, selectedViewId, setViewMap }) => {

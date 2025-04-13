@@ -115,7 +115,7 @@ const BaseFilter: React.FC<Props> = ({ tableId, viewId, tableColumns, handleView
               {/* Dynamic Filters */}
               {filters.map((filter, index) => {
                 const column = tableColumns.find((col) => col.id === filter.column);
-                const availableConditions = column ? conditionsByType[column.type] || [] : [];
+                const availableConditions = column ? conditionsByType[column.type] ?? [] : [];
 
                 return (
                   <div key={index} className="flex gap-2 items-center w-full">

@@ -2,7 +2,7 @@ import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { z } from "zod";
 import { prisma } from "~/lib/db";
 import { Prisma } from "@prisma/client";
-import { FilterType, TextFilterConditions } from "~/types/view";
+import { FilterType, FilterValue, TextFilterConditions } from "~/types/view";
 
 export const viewSchema = z.object({
   viewId: z.string(),
@@ -226,17 +226,17 @@ export const viewRouter = createTRPCRouter({
 
       // Construct filter queries
       const filterQueries = filters.map(({ column, condition, value }) => {
-        let filterParameter: any = {};
+        let filterParameter: FilterValue;
 
         switch (condition) {
           case TextFilterConditions.CONTAINS:
-            filterParameter = { contains: value };
+            filterParameter = { contains: value! };
             break;
           case TextFilterConditions.DOES_NOT_CONTAIN:
-            filterParameter = { not: { contains: value } };
+            filterParameter = { not: { contains: value! } };
             break;
           case TextFilterConditions.IS_EQUAL_TO:
-            filterParameter = { equals: value };
+            filterParameter = { equals: value! };
             break;
           case TextFilterConditions.IS_EMPTY:
             filterParameter = { equals: "" };

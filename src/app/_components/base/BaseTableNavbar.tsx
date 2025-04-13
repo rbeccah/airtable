@@ -54,7 +54,7 @@ export function BaseTableNavbar({
               <BaseHide 
                 tableId={tableId!}
                 viewId={viewId!} 
-                tableColumns={tableColumns!}
+                tableColumns={tableColumns}
                 handleViewApply={handleViewApply}
               />
 
@@ -62,7 +62,7 @@ export function BaseTableNavbar({
               <BaseFilter 
                 tableId={tableId!}
                 viewId={viewId!} 
-                tableColumns={tableColumns!}
+                tableColumns={tableColumns}
                 handleViewApply={handleViewApply}
               />
 
@@ -75,7 +75,7 @@ export function BaseTableNavbar({
               <BaseSort 
                 tableId={tableId!}
                 viewId={viewId!} 
-                tableColumns={tableColumns!}
+                tableColumns={tableColumns}
                 handleViewApply={handleViewApply}
               />
 

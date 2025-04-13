@@ -1,7 +1,16 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "~/server/api/trpc";
 import { prisma } from "~/lib/db";
-import { FilterType, NumSortConditions, TextFilterConditions, TextSortConditions } from "~/types/view";
+import { FilterType, FilterValue, NumSortConditions, TextFilterConditions, TextSortConditions } from "~/types/view";
+
+interface Filter {
+  cells: {
+    some: {
+      columnId: string;
+      value: FilterValue;
+    };
+  };
+}
 
 export const tableRouter = createTRPCRouter({
   getInfiniteRows: protectedProcedure
@@ -48,17 +57,17 @@ export const tableRouter = createTRPCRouter({
 
       // Construct filter conditions
       const filterConditions = filters.map(({ column, condition, value }) => {
-        let filter: any = {};
+        let filter: FilterValue;
 
         switch (condition) {
           case TextFilterConditions.CONTAINS:
-            filter = { contains: value };
+            filter = { contains: value! };
             break;
           case TextFilterConditions.DOES_NOT_CONTAIN:
-            filter = { not: { contains: value } };
+            filter = { not: { contains: value! } };
             break;
           case TextFilterConditions.IS_EQUAL_TO:
-            filter = { equals: value };
+            filter = { equals: value! };
             break;
           case TextFilterConditions.IS_EMPTY:
             filter = { equals: "" };

@@ -12,6 +12,12 @@ export interface FilterType {
   value?: string | undefined;
 }
 
+export type FilterValue = 
+  | { contains: string }
+  | { not: { contains: string } }
+  | { equals: string }
+  | { not: string };
+
 export const TextSortConditions = {
   ALPHA: "A → Z", 
   ALPHA_REVERSE: "Z → A",
