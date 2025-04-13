@@ -1,41 +1,100 @@
 "use client";
 import { useState } from "react";
 import { Button } from "flowbite-react";
-import { FaRegEyeSlash } from "react-icons/fa6";
-import { IoFilterOutline } from "react-icons/io5";
-import { BiSortAlt2 } from "react-icons/bi";
-import { MdOutlinePlaylistAdd } from "react-icons/md";
-import { useSave } from "~/app/_context/SaveContext";
 import { AddDefaultRows } from "~/app/_components/base/AddDefaultRows";
-import { AirRow, Cell } from "~/types/base";
+import { AirColumn, AirRow } from "~/types/base";
+import { MdDehaze } from "react-icons/md";
+import BaseFilter from "./BaseFilter";
+import BaseSort from "./BaseSort";
+import BaseHide from "./BaseHide";
+import { MdListAlt } from "react-icons/md";
+import { IoColorFillOutline } from "react-icons/io5";
+import { RiShareBoxFill } from "react-icons/ri";
+import { TbArrowAutofitHeight } from "react-icons/tb";
 
 interface BaseTableNavbarProps {
   tableId: string | null;
-  globalFilter: string;
-  setGlobalFilter: (value: string) => void;
+  viewId: string | null | undefined;
+  tableColumns: AirColumn[];
+  searchString: string;
+  setSearchString: (value: string) => void;
   handleNewRow: (newRow: AirRow[]) => void;
+  handleSideBar: React.Dispatch<React.SetStateAction<boolean>>;
+  handleViewApply: () => void;
 }
 
-export function BaseTableNavbar({ tableId, globalFilter, setGlobalFilter, handleNewRow }: BaseTableNavbarProps) {
+export function BaseTableNavbar({
+  tableId, 
+  viewId,
+  tableColumns,
+  searchString, 
+  setSearchString,
+  handleNewRow,
+  handleSideBar,
+  handleViewApply
+}: BaseTableNavbarProps) {
 
   return (
     <header className="antialiased">
-      <nav className="w-full bg-white border border-t-0 border-gray px-2 lg:px-6 py-1 dark:bg-gray-800 z-50">
+      <nav className="w-full bg-white border border-t-0 border-gray py-1 dark:bg-gray-800 z-50">
           <div className="flex flex-wrap items-center">
               <div className="block flex flex-row">
-              <Button className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white mx-1">
-                <FaRegEyeSlash className="mr-2 h-5 w-5" />
-                Hide fields
+              <div className="border-r-2">
+                {/* Views Button */}
+                <Button 
+                  className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white mx-1"
+                  onClick={() => handleSideBar((prev: boolean) => !prev)}
+                >
+                  <MdDehaze className="mr-2 h-5 w-5" />
+                  Views
+                </Button>
+              </div>
+
+              {/* Hide Columns Button */}
+              <BaseHide 
+                tableId={tableId!}
+                viewId={viewId!} 
+                tableColumns={tableColumns}
+                handleViewApply={handleViewApply}
+              />
+
+              {/* Filter Button */}
+              <BaseFilter 
+                tableId={tableId!}
+                viewId={viewId!} 
+                tableColumns={tableColumns}
+                handleViewApply={handleViewApply}
+              />
+
+              <Button className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white">
+                <MdListAlt className="mr-2 h-5 w-5" />
+                Group
               </Button>
-              <Button className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white mx-1">
-                <IoFilterOutline className="mr-2 h-5 w-5" />
-                Filter
+
+              {/* Sort Button */}
+              <BaseSort 
+                tableId={tableId!}
+                viewId={viewId!} 
+                tableColumns={tableColumns}
+                handleViewApply={handleViewApply}
+              />
+
+              <Button className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white">
+                <IoColorFillOutline className="mr-2 h-5 w-5" />
+                Color
               </Button>
-              <Button className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white mx-1">
-                <BiSortAlt2 className="mr-2 h-5 w-5" />
-                Sort
+
+              <Button className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white">
+                <TbArrowAutofitHeight className="h-5 w-5" />
               </Button>
+              
+              {/* Add Default Rows Button */}
               <AddDefaultRows tableId={tableId} handleNewRow={handleNewRow} />
+
+              <Button className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white">
+                <RiShareBoxFill className="mr-2 h-5 w-5" />
+                Share and sync
+              </Button>
               </div>
               <div className="ml-auto flex items-center lg:order-2">
                 <label htmlFor="topbar-search" className="sr-only">Search</label>
@@ -47,8 +106,8 @@ export function BaseTableNavbar({ tableId, globalFilter, setGlobalFilter, handle
                     type="text"
                     name="search"
                     id="topbar-search"
-                    value={globalFilter}
-                    onChange={(e) => setGlobalFilter(e.target.value)}
+                    value={searchString}
+                    onChange={(e) => setSearchString(e.target.value)}
                     className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full pl-9 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
                     placeholder="Search"
                   />

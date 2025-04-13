@@ -76,7 +76,7 @@ const BaseTableTabsBar: React.FC<Props> = ({ baseId, tables, setSelectedTableId,
             </button>
           </div>
         ) : (
-          <p className="text-white p-4">No tables found</p>
+          <div></div>
         )}
       </Flowbite>
     </div>

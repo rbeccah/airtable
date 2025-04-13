@@ -1,3 +1,5 @@
+import { Prisma } from "@prisma/client";
+
 export interface Base {
   name: string;
   id: string;
@@ -33,4 +35,48 @@ export interface Table {
   baseId: string;
   columns: AirColumn[];
   rows: AirRow[];
+  views: View[];
+}
+
+export interface View {
+  id: string,
+  name: string,
+  tableId: string;
+  sort: SortCondition[];
+  filters: FilterCondition[];
+  columnVisibility: ColumnVisibility[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SideBarView {
+  tableId: string;
+  name: string;
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SortCondition {
+  id: string,
+  column: string,
+  order: string,
+  viewId: string,
+  createdAt: Date,
+  updatedAt: Date,
+}
+
+export interface FilterCondition {
+  id: string,
+  column: string,
+  value: string,
+  condition: string,
+  viewId: string,
+  createdAt: Date,
+  updatedAt: Date,
+}
+
+export interface ColumnVisibility {
+  columnId: string, 
+  isVisible: boolean,
 }

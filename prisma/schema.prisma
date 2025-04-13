@@ -95,14 +95,16 @@ model Base {
 }
 
 model Table {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String
   baseId    String
-  base      Base     @relation(fields: [baseId], references: [id], onDelete: Cascade, name: "BaseToTable")
-  columns   Column[] @relation("TableToColumn")
-  rows      Row[]   @relation("TableToRow")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  base      Base      @relation(fields: [baseId], references: [id], onDelete: Cascade, name: "BaseToTable")
+  columns   Column[]  @relation("TableToColumn")
+  rows      Row[]     @relation("TableToRow")
+  cells     Cell[]    @relation("TableToCell")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  views      View[]    @relation(name: "TableToView")
 }
 
 model Column {
@@ -129,15 +131,66 @@ model Row {
 model Cell {
   id        String   @id @default(cuid())
   value     String
+
   columnId  String
   column    Column   @relation(fields: [columnId], references: [id], onDelete: Cascade, name: "ColumnToCell")
+
   rowId     String
   row       Row      @relation(fields: [rowId], references: [id], onDelete: Cascade)
+
+  tableId   String
+  table     Table    @relation(fields: [tableId], references: [id], onDelete: Cascade, name: "TableToCell")
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
   @@unique([columnId, rowId]) // Each cell is unique per column/row
   @@index([rowId])
+}
+
+model View {
+  id            String   @id @default(cuid())
+  name          String
+  tableId       String
+  filters       FilterCondition[]
+  sort          SortCondition[]
+  columnVisibility ColumnVisibility[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  table         Table    @relation(fields: [tableId], references: [id], name: "TableToView")
+}
+
+model FilterCondition {
+  id            String   @id @default(cuid())
+  viewId        String
+  column        String
+  condition     String
+  value         String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  view          View     @relation(fields: [viewId], references: [id])
+}
+
+model SortCondition {
+  id         String   @id @default(cuid())
+  viewId     String
+  column     String
+  order      String   // "asc" | "desc"
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  view       View     @relation(fields: [viewId], references: [id])
+}
+
+model ColumnVisibility {
+  id         String   @id @default(cuid())
+  viewId     String
+  columnId   String
+  isVisible  Boolean
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  view       View     @relation(fields: [viewId], references: [id])
 }
 
 enum ColumnType {

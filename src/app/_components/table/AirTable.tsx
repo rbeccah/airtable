@@ -22,7 +22,7 @@ import {
   ApiResponse, 
   TableRow 
 } from "~/types/airtable";
-import { formatTableData, fuzzyFilter, fuzzySort, PAGE_SIZE } from "~/utils/table-utils";
+import { formatTableData, PAGE_SIZE } from "~/utils/table-utils";
 import { EditableCell } from "./EditableCell";
 import { ColumnHeader } from "./ColumnHeader";
 import { AddRowButton } from "./AddRowButton";
@@ -31,27 +31,47 @@ import { AddRowButton } from "./AddRowButton";
 declare module "@tanstack/react-table" {
   interface TableMeta<TData extends RowData> {
     updateData: (rowIndex: number, columnId: string, value: unknown) => void;
-  }
-  
-  interface FilterFns {
-    fuzzy: FilterFn<unknown>;
-  }
-  
-  interface FilterMeta {
-    itemRank: RankingInfo;
+    matchedCellMap: Set<string>;
+    renderData: TableRow[];
   }
 }
 
 // Main Component
-export const AirTable: React.FC<AirTableProps> = ({ 
+export const AirTable: React.FC<AirTableProps> = ({
   tableData, 
   tableId, 
-  globalFilter, 
-  setGlobalFilter, 
-  newRows 
+  handleTableColumns,
+  searchString,
+  setSearchString,
+  newRows,
+  viewId,
+  viewApply,
 }) => {
   const [columns, setColumns] = useState<ColumnDef<TableRow>[]>([]);
+  const [renderData, setRenderData] = useState<TableRow[]>([]);
   const tableContainerRef = useRef<HTMLDivElement>(null);
+  const [hiddenColumns, setHiddenColumns] = useState<Record<string, boolean>>({});
+
+  // Search functionality
+  const { data: matchedCells } = api.table.searchTable.useQuery(
+    {
+      tableId: tableId ?? "",
+      searchString,
+    },
+    {
+      enabled: !!tableId,
+    }
+  );
+  
+  const matchedCellMap = useMemo(() => {
+    const map = new Set<string>();
+    if (matchedCells) {
+      matchedCells.forEach((cell) => {
+        map.add(`${cell.id}`);
+      });
+    }
+    return map;
+  }, [matchedCells]);
 
   // Virtualised Infinite Scrolling
   // tRPC infinite query
@@ -60,7 +80,8 @@ export const AirTable: React.FC<AirTableProps> = ({
     {
       tableId: tableId ?? "",
       limit: PAGE_SIZE,
-      globalFilter,
+      viewId,
+      viewApply
     },
     {
       getNextPageParam: (lastPage) => lastPage.nextCursor,
@@ -70,15 +91,21 @@ export const AirTable: React.FC<AirTableProps> = ({
   );
 
   // Flatten the data
-  const fetchedData = useMemo(() => {
-    const fetchedRows = data?.pages.flatMap(page => page.rows) ?? [];
-    const formattedFetchedRows = formatTableData(fetchedRows);
-    return formattedFetchedRows;
+  useEffect(() => {
+    if (data?.pages) {
+      const fetchedRows = data.pages.flatMap(page => page.rows) ?? [];
+  
+      setRenderData((prevData) => {
+        return [...formatTableData(fetchedRows)];
+      });
+  
+      rowVirtualizer.measure(); // Ensure virtualizer updates
+    }
   }, [data]);
   
   // Virtualizer
   const rowVirtualizer = useVirtualizer({
-    count: fetchedData.length,
+    count: renderData.length,
     getScrollElement: () => tableContainerRef.current,
     estimateSize: () => 50, // row height
     overscan: 10,
@@ -99,7 +126,6 @@ export const AirTable: React.FC<AirTableProps> = ({
     },
     [fetchNextPage, isFetching]
   );
-
 
   // API Functions
   const saveCellData = async (cellId: string, value: string) => {
@@ -148,10 +174,11 @@ export const AirTable: React.FC<AirTableProps> = ({
   
       // Update column definitions
       updateColumns(res.newColumn);
+      handleTableColumns(res.newColumn);
       // updateDataWithNewColumn(res.newColumn, res.newCells);
       
       // Invalidate & refetch table data to ensure new column updates all rows
-      await refetch();
+      void refetch();
     } catch (error) {
       console.error("Error adding column:", error);
     }
@@ -176,14 +203,16 @@ export const AirTable: React.FC<AirTableProps> = ({
 
   const createColumnDef = (col: { id: string; name: string; type: string }): ColumnDef<TableRow> => ({
     accessorKey: col.id,
-    filterFn: fuzzyFilter,
     accessorFn: (row) => row[col.id]?.value ?? "",
-    sortingFn: fuzzySort,
     header: () => <ColumnHeader type={col.type} name={col.name} />,
     cell: ({ row, column, table }) => {
-      const cellData = row.original[column.id];
+      const rowData = table.options.meta?.renderData[row.index]; // Access the row data using row.index
+      const cellData = rowData?.[column.id];
+
       const columnType = tableData?.columns.find(c => c.id === column.id)?.type ?? "Text";
-  
+      const cellId = row.original[column.id]?.id;
+      const isMatched = cellId ? table.options.meta?.matchedCellMap?.has(cellId) : false;
+
       return (
         <EditableCell
           cellData={cellData ?? { id: "", value: "" }}
@@ -192,6 +221,7 @@ export const AirTable: React.FC<AirTableProps> = ({
             table.options.meta?.updateData?.(row.index, column.id, newValue);
           }}
           onSaveCell={(cellId, value) => saveCellData(cellId, value)}
+          isMatched={isMatched}
         />
       );
     },
@@ -211,6 +241,7 @@ export const AirTable: React.FC<AirTableProps> = ({
 
   // Effects
   // Update local rows when newRows prop changes
+  const { data: existingConditions, isError } = api.view.getViewById.useQuery(viewId);
   useEffect(() => {
     if (newRows.length > 0) {
       // Refetch data to ensure consistency
@@ -219,18 +250,50 @@ export const AirTable: React.FC<AirTableProps> = ({
   }, [newRows, refetch]);
 
   useEffect(() => {
-    if (!tableData) return;
+    if (!tableData || !existingConditions) return;
+  
+    const visibilityMap = Object.fromEntries(
+      existingConditions.columnVisibility.map((c) => [c.columnId, c.isVisible])
+    );
+  
+    setHiddenColumns(visibilityMap);
     setColumns(generateColumns(tableData.columns));
-  }, [tableData]);
+  }, [tableData, existingConditions]);
 
   useEffect(() => {
     fetchMoreOnBottomReached(tableContainerRef.current);
   }, [fetchMoreOnBottomReached]);
 
+  // const prevViewApply = useRef(viewApply);
+  // useEffect(() => {
+  //   if (prevViewApply.current !== viewApply) {
+  //     prevViewApply.current = viewApply; // Update the ref to the new value
+  //     window.location.reload();
+  //   }
+  // }, [viewApply]);
+
+  useEffect(() => {
+    setRenderData([]);
+    void refetch();
+  }, [viewApply]);
+
+  useEffect(() => {
+    if (existingConditions?.columnVisibility) {
+      const visibilityMap = Object.fromEntries(
+        existingConditions.columnVisibility.map((c) => [c.columnId, c.isVisible])
+      );
+      setHiddenColumns(visibilityMap);
+    }
+  }, [existingConditions]);
+
   // Table Configuration
   const table = useReactTable({
-    data: fetchedData,
+    data: useMemo(() => renderData, [renderData]),
     columns,
+    state: {
+      columnVisibility: hiddenColumns,
+    },
+    onColumnVisibilityChange: setHiddenColumns,
     defaultColumn: {
       cell: ({ getValue, row, column, table }) => {
         const cellData = getValue() as { id: string; value: string };
@@ -246,29 +309,28 @@ export const AirTable: React.FC<AirTableProps> = ({
           void saveCellData(row[columnId].id, String(value));
         }
       },
+      matchedCellMap,
+      renderData,
     },
-    filterFns: { fuzzy: fuzzyFilter },
-    state: { globalFilter },
-    onGlobalFilterChange: setGlobalFilter,
-    globalFilterFn: fuzzyFilter,
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
 
   const virtualRows = rowVirtualizer.getVirtualItems();
-  const paddingTop = virtualRows[0]?.start ?? 0;
+  const paddingTop = virtualRows.length > 0 ? virtualRows[0]!.start : 0;
   const paddingBottom = virtualRows.length > 0
     ? rowVirtualizer.getTotalSize() - (virtualRows[virtualRows.length - 1]?.end ?? 0)
-    : 0;
+    : 0
 
   // Render
   return (
     <div 
       ref={tableContainerRef}
+      key={`table-container-${viewId}-${viewApply}`}
       className="overflow-auto relative h-full border border-gray-200 rounded-lg"
       onScroll={() => fetchMoreOnBottomReached(tableContainerRef.current)}
     >
-      <div style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
+      <div style={{ height: `${rowVirtualizer.getTotalSize() + 100}px` }}>
         <table className="border-collapse">
           <thead className="sticky top-0 z-10 bg-gray-100">
             {table.getHeaderGroups().map(headerGroup => (

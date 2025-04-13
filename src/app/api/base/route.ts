@@ -60,6 +60,7 @@ export async function POST(req: Request) {
           table.columns.map((column) =>
             prisma.cell.create({
               data: {
+                tableId: table.id,
                 columnId: column.id,
                 rowId: row.id,
                 value: String(data[column.name as keyof typeof data] || ""),
@@ -104,6 +105,7 @@ export async function GET(req: Request) {
             },
           },
         },
+        views: true,
       },
     });
 
