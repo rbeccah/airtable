@@ -1,17 +1,16 @@
 "use client";
 import { useState } from "react";
 import { Button } from "flowbite-react";
-import { FaRegEyeSlash } from "react-icons/fa6";
-import { IoFilterOutline } from "react-icons/io5";
-import { BiSortAlt2 } from "react-icons/bi";
-import { MdOutlinePlaylistAdd } from "react-icons/md";
-import { useSave } from "~/app/_context/SaveContext";
 import { AddDefaultRows } from "~/app/_components/base/AddDefaultRows";
 import { AirColumn, AirRow } from "~/types/base";
 import { MdDehaze } from "react-icons/md";
 import BaseFilter from "./BaseFilter";
 import BaseSort from "./BaseSort";
 import BaseHide from "./BaseHide";
+import { MdListAlt } from "react-icons/md";
+import { IoColorFillOutline } from "react-icons/io5";
+import { RiShareBoxFill } from "react-icons/ri";
+import { TbArrowAutofitHeight } from "react-icons/tb";
 
 interface BaseTableNavbarProps {
   tableId: string | null;
@@ -41,6 +40,7 @@ export function BaseTableNavbar({
           <div className="flex flex-wrap items-center">
               <div className="block flex flex-row">
               <div className="border-r-2">
+                {/* Views Button */}
                 <Button 
                   className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white mx-1"
                   onClick={() => handleSideBar((prev: boolean) => !prev)}
@@ -49,25 +49,52 @@ export function BaseTableNavbar({
                   Views
                 </Button>
               </div>
+
+              {/* Hide Columns Button */}
               <BaseHide 
                 tableId={tableId!}
                 viewId={viewId!} 
                 tableColumns={tableColumns!}
                 handleViewApply={handleViewApply}
               />
+
+              {/* Filter Button */}
               <BaseFilter 
                 tableId={tableId!}
                 viewId={viewId!} 
                 tableColumns={tableColumns!}
                 handleViewApply={handleViewApply}
               />
+
+              <Button className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white">
+                <MdListAlt className="mr-2 h-5 w-5" />
+                Group
+              </Button>
+
+              {/* Sort Button */}
               <BaseSort 
                 tableId={tableId!}
                 viewId={viewId!} 
                 tableColumns={tableColumns!}
                 handleViewApply={handleViewApply}
               />
+
+              <Button className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white">
+                <IoColorFillOutline className="mr-2 h-5 w-5" />
+                Color
+              </Button>
+
+              <Button className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white">
+                <TbArrowAutofitHeight className="h-5 w-5" />
+              </Button>
+              
+              {/* Add Default Rows Button */}
               <AddDefaultRows tableId={tableId} handleNewRow={handleNewRow} />
+
+              <Button className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white">
+                <RiShareBoxFill className="mr-2 h-5 w-5" />
+                Share and sync
+              </Button>
               </div>
               <div className="ml-auto flex items-center lg:order-2">
                 <label htmlFor="topbar-search" className="sr-only">Search</label>

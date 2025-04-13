@@ -80,7 +80,7 @@ export function AddDefaultRows({ tableId, handleNewRow }: AddDefaultRowsProps) {
       <div className="relative">
         {/* Add Default Rows Button */}
         <Button 
-          className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white mx-1"
+          className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white"
           onClick={() => setIsDropdownOpen((prev) => !prev)} 
         >
           <MdOutlinePlaylistAdd className="mr-2 h-5 w-5" />

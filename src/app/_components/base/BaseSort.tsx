@@ -101,7 +101,7 @@ const BaseSort: React.FC<Props> = ({ tableId, viewId, tableColumns, handleViewAp
       <div className="relative">
         {/* Filter Button */}
         <Button 
-          className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white mx-1"
+          className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white"
           onClick={() => setIsDropdownOpen((prev) => !prev)}
         >
           <BiSortAlt2 className="mr-2 h-5 w-5" />
