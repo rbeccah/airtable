@@ -21,3 +21,8 @@ export const NumSortConditions = {
   INC: "1 → 9", 
   DEC: "9 → 1", 
 } as const;
+
+export interface SortType {
+  column: string,
+  order: string,
+}

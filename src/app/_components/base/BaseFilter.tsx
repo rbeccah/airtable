@@ -91,7 +91,7 @@ const BaseFilter: React.FC<Props> = ({ tableId, viewId, tableColumns, handleView
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    addFilterViewMutation.mutate({ tableId: tableId, view: {viewId, filters} });
+    addFilterViewMutation.mutate({ viewId: viewId, view: {viewId, filters} });
     setIsDropdownOpen(false);
   };
 

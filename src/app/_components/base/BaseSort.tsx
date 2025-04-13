@@ -77,6 +77,7 @@ const BaseSort: React.FC<Props> = ({ tableId, viewId, tableColumns, handleViewAp
     const updatedSorts = sorts.map((filter, i) =>
       i === index ? { ...filter, [key]: value } : filter
     );
+    console.log(updatedSorts);
     setSorts(updatedSorts);
   };
 
@@ -91,7 +92,7 @@ const BaseSort: React.FC<Props> = ({ tableId, viewId, tableColumns, handleViewAp
   
     const handleSubmit = async (e: FormEvent) => {
       e.preventDefault();
-      addSortMutation.mutate({ tableId: tableId, view: {viewId, sorts} });
+      addSortMutation.mutate({ viewId: viewId, view: {viewId, sorts} });
       setIsDropdownOpen(false);
     };
 

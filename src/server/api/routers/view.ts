@@ -20,7 +20,7 @@ export const viewSchema = z.object({
       order: z.string(),
     })
   ).optional(),
-  visibleColumns: z.array(z.string()).optional(),
+  hiddenColumns: z.record(z.boolean()).optional(),
 });
 
 export const viewRouter = createTRPCRouter({
@@ -136,7 +136,7 @@ export const viewRouter = createTRPCRouter({
   // Add filter conditions
   updateFilter: publicProcedure
     .input(z.object({
-      tableId: z.string(),
+      viewId: z.string(),
       view: viewSchema,
     }))
     .mutation(async ({ input }) => {
@@ -164,7 +164,7 @@ export const viewRouter = createTRPCRouter({
   // Update sort conditions
   updateSort: publicProcedure
     .input(z.object({
-      tableId: z.string(),
+      viewId: z.string(),
       view: viewSchema,
     }))
     .mutation(async ({ input }) => {
@@ -186,6 +186,44 @@ export const viewRouter = createTRPCRouter({
           })),
       });
     }),
+
+  // Update hide conditions
+  updateHide: publicProcedure
+  .input(z.object({
+    tableId: z.string(),
+    view: viewSchema,
+  }))
+  .mutation(async ({ input }) => {
+    const { tableId, view } = input;
+    const { viewId, hiddenColumns } = view;
+
+    if (hiddenColumns) {
+      // Delete existing visibility rules for this view
+      await prisma.columnVisibility.deleteMany({
+        where: { viewId },
+      });
+
+      // Fetch all columns for the given table
+      const columns = await prisma.column.findMany({
+        where: { tableId },
+        select: { id: true },
+      });
+
+      // Build visibility data using hiddenColumns
+      const visibilityData = columns.map((column) => ({
+        viewId,
+        columnId: column.id,
+        isVisible: !hiddenColumns[column.id], // false means hidden
+      }));
+
+      // Insert new visibility records
+      await prisma.columnVisibility.createMany({
+        data: visibilityData,
+      });
+    }
+
+    return { success: true };
+  }),
 
   // Apply view
   applyView: publicProcedure

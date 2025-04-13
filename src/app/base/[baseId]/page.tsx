@@ -124,6 +124,7 @@ const Base = () => {
           <div className={`transition-all duration-300 h-full bg-gray-100 ${sideBar ? 'ml-64' : ''} flex-1`}>
             {selectedTableId && selectedViewId ? (
               <AirTable
+                // key={viewApplied ? "view-true" : "view-false"}
                 tableData={selectedTableData}
                 tableId={selectedTableId}
                 handleTableColumns={handleUpdatingNewColumn}

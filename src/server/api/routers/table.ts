@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { prisma } from "~/lib/db";
-import { FilterType, TextFilterConditions } from "~/types/view";
+import { FilterType, NumSortConditions, TextFilterConditions, TextSortConditions } from "~/types/view";
 
 export const tableRouter = createTRPCRouter({
   getInfiniteRows: protectedProcedure
@@ -9,7 +9,7 @@ export const tableRouter = createTRPCRouter({
       tableId: z.string(),
       cursor: z.string().nullish(),
       limit: z.number().min(1).max(100).default(50),
-      viewId: z.string()
+      viewId: z.string(),
     }))
     .query(async ({ input, ctx }) => {
       const { tableId, cursor, limit, viewId } = input;
@@ -25,6 +25,17 @@ export const tableRouter = createTRPCRouter({
         throw new Error("View not found");
       }
 
+      // ************ Hidden Columns ************ //
+      const hiddenColumnVis = await ctx.prisma.columnVisibility.findMany({
+        where: {
+          viewId,
+          isVisible: false,
+        },
+        select: { columnId: true },
+      });
+      const hiddenColumnIds = hiddenColumnVis.map((c) => c.columnId);
+
+      // ************ Filters ************ //
       // Parse filters
       const filters: FilterType[] = view.filters
         ? (Array.isArray(view.filters)
@@ -68,23 +79,62 @@ export const tableRouter = createTRPCRouter({
         };
       });
 
-      
-      const rows = await ctx.prisma.row.findMany({
-        where: { 
+      // ************ Sorting ************ //
+      // Construct sort conditions
+      const sortConditions = view.sort.map(({ column, order }) => ({
+        columnId: column,
+        order: order,
+      }));
+      const sortCondition = sortConditions[0];
+      let orderedRowIds: string[] = [];
+
+      if (sortCondition) {
+        const { columnId, order } = sortCondition;
+        const prismaOrder = order === "A → Z" || order === "1 → 9" ? "asc" : "desc";
+
+        const orderedCells = await ctx.prisma.cell.findMany({
+          where: { columnId },
+          orderBy: { value: prismaOrder },
+          select: { rowId: true },
+        });
+        orderedRowIds = orderedCells.map((cell: { rowId: string; }) => cell.rowId);
+      }
+
+      // ************ Fetch Rows ************ //
+      let rows = await ctx.prisma.row.findMany({
+        where: {
           tableId,
+          id: orderedRowIds.length > 0 ? { in: orderedRowIds } : undefined,
           AND: filterConditions.length > 0 ? filterConditions : undefined,
         },
-        take: limit + 1, // get an extra item for next cursor
+        take: limit + 1,
         cursor: cursor ? { id: cursor } : undefined,
-        orderBy: { createdAt: "asc" },
         include: {
           cells: {
-            include: {
-              column: true,
-            },
+            include: { column: true },
           },
         },
       });
+      // rows.forEach(row => {
+      //   console.log(row);
+      //   row.cells.forEach(cell => {
+      //     console.log(cell);
+      //   })
+      // })
+
+      // ************ Sorting Rows ************ //
+      if (orderedRowIds.length > 0) {
+        const rowMap = new Map(rows.map((row) => [row.id, row]));
+        rows = orderedRowIds
+          .map((id) => rowMap.get(id))
+          .filter(Boolean) as typeof rows;
+      }
+
+      // ************ Apply Hiding Logic ************ //
+      rows = rows.map((row) => ({
+        ...row,
+        cells: row.cells.filter((cell) => !hiddenColumnIds.includes(cell.columnId)),
+      }));
 
       let nextCursor: typeof cursor | undefined = undefined;
       if (rows.length > limit) {

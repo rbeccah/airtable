@@ -26,7 +26,6 @@ import { formatTableData, fuzzyFilter, fuzzySort, PAGE_SIZE } from "~/utils/tabl
 import { EditableCell } from "./EditableCell";
 import { ColumnHeader } from "./ColumnHeader";
 import { AddRowButton } from "./AddRowButton";
-import { render } from "react-dom";
 
 // Types
 declare module "@tanstack/react-table" {
@@ -55,6 +54,7 @@ export const AirTable: React.FC<AirTableProps> = ({
   const [columns, setColumns] = useState<ColumnDef<TableRow>[]>([]);
   const [renderData, setRenderData] = useState<TableRow[]>([]);
   const tableContainerRef = useRef<HTMLDivElement>(null);
+  const [hiddenColumns, setHiddenColumns] = useState<Record<string, boolean>>({});
 
   // Virtualised Infinite Scrolling
   // tRPC infinite query
@@ -76,10 +76,9 @@ export const AirTable: React.FC<AirTableProps> = ({
   useEffect(() => {
     if (data?.pages) {
       const fetchedRows = data.pages.flatMap(page => page.rows) ?? [];
-      console.log("Formatted rows (before update):", fetchedRows);
+      console.log(fetchedRows);
   
       setRenderData((prevData) => {
-        console.log("Previous renderData:", prevData);
         return [...formatTableData(fetchedRows)];
       });
   
@@ -246,10 +245,29 @@ export const AirTable: React.FC<AirTableProps> = ({
     }
   }, [viewApply]);
 
+  // useEffect(() => {
+  //   void refetch();
+  // }, [viewApply]);
+
+  const { data: existingConditions, isError } = api.view.getViewById.useQuery(viewId);
+
+  useEffect(() => {
+    if (existingConditions?.columnVisibility) {
+      const visibilityMap = Object.fromEntries(
+        existingConditions.columnVisibility.map((c) => [c.columnId, c.isVisible])
+      );
+      setHiddenColumns(visibilityMap);
+    }
+  }, [existingConditions]);
+
   // Table Configuration
   const table = useReactTable({
     data: useMemo(() => renderData, [renderData]),
     columns,
+    state: {
+      columnVisibility: hiddenColumns,
+    },
+    onColumnVisibilityChange: setHiddenColumns,
     defaultColumn: {
       cell: ({ getValue, row, column, table }) => {
         const cellData = getValue() as { id: string; value: string };
