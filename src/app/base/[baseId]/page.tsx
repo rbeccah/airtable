@@ -176,7 +176,8 @@ const Base = () => {
                 handleTableColumns={handleUpdatingNewColumn}
                 searchString={searchString}
                 setSearchString={setSearchString}
-                newRows={newCells}
+                newCells={newCells}
+                setNewCells={setNewCells}
                 viewId={selectedViewId}
                 viewApply={viewApplied}
               />

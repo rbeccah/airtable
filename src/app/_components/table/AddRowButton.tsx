@@ -26,6 +26,7 @@ export function  AddRowButton({ tableId, handleNewRow }: AddRowProp) {
 
     const result = await response.json() as ApiResponse;
     if (result.success && result.newRows) {
+      console.log(result.newRows);
       handleNewRow(result.newRows); // Update table when new row is added
     }
   };

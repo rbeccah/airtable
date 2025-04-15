@@ -58,6 +58,7 @@ const BaseSort: React.FC<Props> = ({ tableId, viewId, tableColumns, handleViewAp
   };
 
   const { data: existingConditions, isLoading, isError } = api.view.getViewById.useQuery(viewId);
+  const hasActiveSorts = !!existingConditions?.sort?.length;
 
   useEffect(() => {
     if (existingConditions) {
@@ -81,8 +82,10 @@ const BaseSort: React.FC<Props> = ({ tableId, viewId, tableColumns, handleViewAp
     setSorts(updatedSorts);
   };
 
+  const utils = api.useUtils();
   const addSortMutation = api.view.updateSort.useMutation({
       onSuccess: (data) => {
+        utils.view.getViewById.invalidate(viewId);
         handleViewApply();
       },
       onError: (error: TRPCClientErrorLike<AppRouter>) => {
@@ -101,7 +104,10 @@ const BaseSort: React.FC<Props> = ({ tableId, viewId, tableColumns, handleViewAp
       <div className="relative">
         {/* Filter Button */}
         <Button 
-          className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white"
+          size="sm"
+          className={`enabled:hover:bg-gray-100 focus:ring-white mx-0.5 ${
+            hasActiveSorts ? "bg-purple-100 text-purple-700" : "bg-white text-black"
+          }`}
           onClick={() => setIsDropdownOpen((prev) => !prev)}
         >
           <BiSortAlt2 className="mr-2 h-5 w-5" />

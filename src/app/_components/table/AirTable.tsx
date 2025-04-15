@@ -8,13 +8,11 @@ import {
   flexRender,
   RowData,
   getFilteredRowModel,
-  FilterFn,
   getSortedRowModel,
 } from "@tanstack/react-table";
-import { RankingInfo } from '@tanstack/match-sorter-utils';
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { AddColumnButton } from "~/app/_components/table/AddColumnButton";
-import { Cell, AirColumn, AirRow } from "~/types/base";
+import { AirColumn, AirRow } from "~/types/base";
 import { api } from "~/trpc/react";
 import { 
   AddColumnResponse, 
@@ -42,8 +40,8 @@ export const AirTable: React.FC<AirTableProps> = ({
   tableId, 
   handleTableColumns,
   searchString,
-  setSearchString,
-  newRows,
+  newCells,
+  setNewCells,
   viewId,
   viewApply,
 }) => {
@@ -172,10 +170,10 @@ export const AirTable: React.FC<AirTableProps> = ({
         return;
       }
   
+      tableData.columns.push(res.newColumn);
       // Update column definitions
       updateColumns(res.newColumn);
       handleTableColumns(res.newColumn);
-      // updateDataWithNewColumn(res.newColumn, res.newCells);
       
       // Invalidate & refetch table data to ensure new column updates all rows
       void refetch();
@@ -185,6 +183,7 @@ export const AirTable: React.FC<AirTableProps> = ({
   };
   
   const handleNewRow = (newCells: AirRow[]) => {
+    setNewCells(newCells);
     void refetch();
   };
 
@@ -227,8 +226,13 @@ export const AirTable: React.FC<AirTableProps> = ({
     },
   });
 
-  const generateColumns = (columnsData: { id: string; name: string; type: string }[]): ColumnDef<TableRow>[] => [
-    ...columnsData.map(createColumnDef),
+  const generateColumns = (
+    columnsData: { id: string; name: string; type: string }[],
+    visibilityMap: Record<string, boolean>
+  ): ColumnDef<TableRow>[] => [
+    ...columnsData
+      .filter((col) => visibilityMap[col.id] !== false) // Only show visible columns
+      .map(createColumnDef),
     {
       accessorKey: "add-column",
       header: () => <AddColumnButton onAddColumn={handleAddColumn} />,
@@ -243,11 +247,14 @@ export const AirTable: React.FC<AirTableProps> = ({
   // Update local rows when newRows prop changes
   const { data: existingConditions, isError } = api.view.getViewById.useQuery(viewId);
   useEffect(() => {
-    if (newRows.length > 0) {
-      // Refetch data to ensure consistency
-      void refetch();
+    if (!existingConditions) return;
+  
+    const hasSorts = existingConditions.sort?.length !== 0;
+    if (newCells.length > 0 && hasSorts) {
+      setRenderData([]);
     }
-  }, [newRows, refetch]);
+    void refetch();
+  }, [newCells, existingConditions, refetch]);
 
   useEffect(() => {
     if (!tableData || !existingConditions) return;
@@ -257,20 +264,18 @@ export const AirTable: React.FC<AirTableProps> = ({
     );
   
     setHiddenColumns(visibilityMap);
-    setColumns(generateColumns(tableData.columns));
+    setColumns(generateColumns(tableData.columns, visibilityMap));
+    void refetch();
   }, [tableData, existingConditions]);
+  
+  useEffect(() => {
+    if (!tableData) return;
+    setColumns(generateColumns(tableData.columns, hiddenColumns));
+  }, [hiddenColumns, tableData]);
 
   useEffect(() => {
     fetchMoreOnBottomReached(tableContainerRef.current);
   }, [fetchMoreOnBottomReached]);
-
-  // const prevViewApply = useRef(viewApply);
-  // useEffect(() => {
-  //   if (prevViewApply.current !== viewApply) {
-  //     prevViewApply.current = viewApply; // Update the ref to the new value
-  //     window.location.reload();
-  //   }
-  // }, [viewApply]);
 
   useEffect(() => {
     setRenderData([]);
@@ -326,7 +331,7 @@ export const AirTable: React.FC<AirTableProps> = ({
   return (
     <div 
       ref={tableContainerRef}
-      key={`table-container-${viewId}-${viewApply}`}
+      key={`table-container-${viewId}-${viewApply}-${JSON.stringify(hiddenColumns)}`}
       className="overflow-auto relative h-full border border-gray-200 rounded-lg"
       onScroll={() => fetchMoreOnBottomReached(tableContainerRef.current)}
     >
