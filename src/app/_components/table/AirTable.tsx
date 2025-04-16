@@ -317,6 +317,8 @@ export const AirTable: React.FC<AirTableProps> = ({
       matchedCellMap,
       renderData,
     },
+    enableColumnResizing: true,
+    columnResizeMode: 'onChange',
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
@@ -341,17 +343,26 @@ export const AirTable: React.FC<AirTableProps> = ({
             {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map(header => (
-                  <th 
-                    key={header.id} 
+                  <th
+                    key={header.id}
+                    style={{ width: header.getSize() }}
                     className={`
-                      border-b border-r border-gray-300 p-0
-                      ${header.column.id === "add-column" ? "w-12 bg-gray-100" : "min-w-[200px]"}
+                      relative border-b border-r border-gray-300 p-0 
+                      ${header.column.id === "add-column" ? "w-[20px] bg-gray-100 text-center" : ""}
                     `}
                   >
-                    <div className="px-3 py-1">
+                    <div className="px-3 py-1 flex items-center justify-center">
                       {flexRender(header.column.columnDef.header, header.getContext())}
+                      {header.column.getCanResize() && (
+                        <div
+                          onMouseDown={header.getResizeHandler()}
+                          onTouchStart={header.getResizeHandler()}
+                          className="absolute right-0 top-0 h-full w-1 cursor-col-resize bg-blue-300 opacity-0 hover:opacity-100 transition-opacity"
+                          style={{ transform: 'translateX(50%)' }}
+                        />
+                      )}
                     </div>
-                  </th>
+                  </th>                
                 ))}
               </tr>
             ))}
@@ -375,6 +386,7 @@ export const AirTable: React.FC<AirTableProps> = ({
                   {row.getVisibleCells().map(cell => (
                     <td 
                       key={cell.id} 
+                      style={{ width: cell.column.getSize() }}
                       className={`
                         border-b border-r p-0
                         ${cell.column.id === "add-column" ? "bg-gray-100 border-gray-100" : "bg-transparent border-gray-200"}
@@ -389,10 +401,12 @@ export const AirTable: React.FC<AirTableProps> = ({
               );
             })}
 
-            <tr className="h-[42px] bg-white">
-              <td colSpan={columns.length - 1} className="h-full border-b border-gray-300">
-                <div className="h-[41px] flex items-center justify-center bg-white hover:bg-gray-50">
-                  <AddRowButton tableId={tableId} handleNewRow={handleNewRow}/>
+            <tr className="bg-white">
+              <td className="h-full border-b border-gray-300 px-2">
+                <div className="w-full flex justify-center bg-white hover:bg-gray-50">
+                  <div className="max-w-[200px] w-full flex justify-center">
+                    <AddRowButton tableId={tableId} handleNewRow={handleNewRow} />
+                  </div>
                 </div>
               </td>
             </tr>

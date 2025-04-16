@@ -33,7 +33,7 @@ const BaseSideBar: React.FC<Props> = ({ sideBar, tableId, selectedViewId, setVie
         aria-label="Default sidebar example"
         className={`transition-all duration-300 transform ${
           sideBar ? 'translate-x-0' : '-translate-x-full'
-        } fixed top-30 left-0 h-full w-64 bg-white shadow-lg z-20 flex flex-col`}
+        } fixed top-30 left-0 h-full w-56 bg-white shadow-lg z-20 flex flex-col`}
       >
         {/* Top content */}
         <SidebarItems>

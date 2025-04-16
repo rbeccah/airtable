@@ -69,7 +69,7 @@ const BaseHide: React.FC<Props> = ({ tableId, viewId, tableColumns, handleViewAp
   const utils = api.useUtils();
   const addHiddenViewMutation = api.view.updateHide.useMutation({
       onSuccess: (data) => {
-        utils.view.getViewById.invalidate(viewId);
+        void utils.view.getViewById.invalidate(viewId);
         handleViewApply();
       },
       onError: (error: TRPCClientErrorLike<AppRouter>) => {

@@ -84,7 +84,7 @@ const BaseFilter: React.FC<Props> = ({ tableId, viewId, tableColumns, handleView
   const utils = api.useUtils();
   const addFilterViewMutation = api.view.updateFilter.useMutation({
     onSuccess: (data) => {
-      utils.view.getViewById.invalidate(viewId);
+      void utils.view.getViewById.invalidate(viewId);
       handleViewApply();
     },
     onError: (error: TRPCClientErrorLike<AppRouter>) => {

@@ -85,7 +85,7 @@ const BaseSort: React.FC<Props> = ({ tableId, viewId, tableColumns, handleViewAp
   const utils = api.useUtils();
   const addSortMutation = api.view.updateSort.useMutation({
       onSuccess: (data) => {
-        utils.view.getViewById.invalidate(viewId);
+        void utils.view.getViewById.invalidate(viewId);
         handleViewApply();
       },
       onError: (error: TRPCClientErrorLike<AppRouter>) => {

@@ -8,7 +8,7 @@ interface ColumnHeaderProps {
 }
 
 export const ColumnHeader = ({ type, name }: ColumnHeaderProps) => (
-  <div className="flex items-center justify-between group">
+  <div className="flex items-center justify-between w-full group">
     <div className="flex items-center gap-2">
       {type === "Text" ? (
         <MdOutlineTextFields className="w-4 h-4 text-gray-500" />
