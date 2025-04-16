@@ -170,9 +170,10 @@ export const AirTable: React.FC<AirTableProps> = ({
         return;
       }
   
+      tableData.columns.push(res.newColumn);
       // Update column definitions
       updateColumns(res.newColumn);
-      handleTableColumns(res.newColumn);
+      handleTableColumns(tableData.columns);
       
       // Invalidate & refetch table data to ensure new column updates all rows
       void refetch();
