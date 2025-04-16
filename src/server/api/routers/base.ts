@@ -148,4 +148,28 @@ export const baseRouter = createTRPCRouter({
 
       return table;
     }),
+
+    getBaseNameById: protectedProcedure
+      .input(z.object({ baseId: z.string() }))
+      .query(async ({ input }) => {
+        const base = await prisma.base.findUnique({
+          where: { id: input.baseId },
+          select: { name: true },
+        });
+    
+        if (!base) {
+          throw new Error("Base not found");
+        }
+    
+        return { baseId: input.baseId, name: base.name };
+      }),
+
+    updateBaseName: protectedProcedure
+      .input(z.object({ baseId: z.string(), newName: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        return await ctx.prisma.base.update({
+          where: { id: input.baseId },
+          data: { name: input.newName },
+        });
+      }),
 });

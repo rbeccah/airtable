@@ -24,7 +24,6 @@ const Base = () => {
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [selectedTableData, setSelectedTableData] = useState<Table | null>(null);
   const [selectedTableColumns, setSelectedTableColumns] = useState<AirColumn[]>();
-  // const [selectedViewId, setSelectedViewId] = useState<string | null>();
   const [searchString, setSearchString] = useState("");
   const [newCells, setNewCells] = useState<AirRow[]>([]);
   const [sideBar, setSideBar] = useState<boolean>(false);
@@ -33,6 +32,8 @@ const Base = () => {
   // View ID functionality
   const [viewMap, setViewMap] = useState<Record<string, string | null>>({});
   const selectedViewId = selectedTableId ? viewMap[selectedTableId] : null;
+
+  const { data: baseInfo, isLoading: isBaseNameLoading } = api.base.getBaseNameById.useQuery({ baseId });
 
   useEffect(() => {
     // fallback if no tables
@@ -131,7 +132,9 @@ const Base = () => {
       <div className="h-screen flex flex-col bg-gray-100">
         {/* Navbar */}
         <div className="fixed top-0 left-0 w-full z-50">
-          <BaseNavbar />
+          {baseInfo && (
+            <BaseNavbar baseId={baseInfo.baseId} baseName={baseInfo.name} />
+          )}
         </div>
 
         {/* Table Tabs Bar */}
