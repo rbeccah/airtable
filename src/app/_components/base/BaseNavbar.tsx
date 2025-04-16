@@ -22,7 +22,7 @@ export function BaseNavbar({ baseId, baseName }: { baseId: string; baseName: str
   const utils = api.useUtils();
   const updateBaseName = api.base.updateBaseName.useMutation({
     onSuccess: () => {
-      utils.invalidate(); // or just utils.base.invalidate() if scoped
+      void utils.invalidate();
     },
   });
 

@@ -132,7 +132,9 @@ const Base = () => {
       <div className="h-screen flex flex-col bg-gray-100">
         {/* Navbar */}
         <div className="fixed top-0 left-0 w-full z-50">
-          <BaseNavbar baseId={baseInfo?.baseId!} baseName={baseInfo?.name!}/>
+          {baseInfo && (
+            <BaseNavbar baseId={baseInfo.baseId} baseName={baseInfo.name} />
+          )}
         </div>
 
         {/* Table Tabs Bar */}
