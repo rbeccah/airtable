@@ -89,6 +89,7 @@ export function AddDefaultRows({ tableId, handleNewRow }: AddDefaultRowsProps) {
       <div className="relative">
         {/* Add Default Rows Button */}
         <Button 
+          size="sm"
           className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white"
           onClick={() => setIsDropdownOpen((prev) => !prev)} 
           disabled={isLoading}

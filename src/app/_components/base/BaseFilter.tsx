@@ -58,6 +58,7 @@ const BaseFilter: React.FC<Props> = ({ tableId, viewId, tableColumns, handleView
   };
 
   const { data: existingConditions, isLoading, isError } = api.view.getViewById.useQuery(viewId);
+  const hasActiveFilters = !!existingConditions?.filters?.length;
 
   useEffect(() => {
     if (existingConditions) {
@@ -80,8 +81,10 @@ const BaseFilter: React.FC<Props> = ({ tableId, viewId, tableColumns, handleView
     setFilters(updatedFilters);
   };
 
+  const utils = api.useUtils();
   const addFilterViewMutation = api.view.updateFilter.useMutation({
     onSuccess: (data) => {
+      void utils.view.getViewById.invalidate(viewId);
       handleViewApply();
     },
     onError: (error: TRPCClientErrorLike<AppRouter>) => {
@@ -100,7 +103,10 @@ const BaseFilter: React.FC<Props> = ({ tableId, viewId, tableColumns, handleView
       <div className="relative">
         {/* Filter Button */}
         <Button
-          className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white"
+          size="sm"
+          className={`enabled:hover:bg-gray-100 focus:ring-white mx-0.5 ${
+            hasActiveFilters ? "bg-green-100 text-green-700" : "bg-white text-black"
+          }`}
           onClick={() => setIsDropdownOpen((prev) => !prev)}
         >
           <IoFilterOutline className="mr-2 h-5 w-5" />

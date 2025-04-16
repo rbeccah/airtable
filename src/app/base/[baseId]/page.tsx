@@ -167,7 +167,7 @@ const Base = () => {
           />
 
           {/* Table Content */}
-          <div className={`transition-all duration-300 h-full bg-gray-100 ${sideBar ? 'ml-64' : ''} flex-1`}>
+          <div className={`transition-all duration-300 h-full bg-gray-100 ${sideBar ? 'ml-56' : ''} flex-1`}>
             {selectedTableId && selectedViewId ? (
               <AirTable
                 key={viewApplied ? "view-true" : "view-false"}
@@ -176,7 +176,8 @@ const Base = () => {
                 handleTableColumns={handleUpdatingNewColumn}
                 searchString={searchString}
                 setSearchString={setSearchString}
-                newRows={newCells}
+                newCells={newCells}
+                setNewCells={setNewCells}
                 viewId={selectedViewId}
                 viewApply={viewApplied}
               />

@@ -43,6 +43,9 @@ const BaseHide: React.FC<Props> = ({ tableId, viewId, tableColumns, handleViewAp
   };
 
   const { data: existingConditions, isLoading, isError } = api.view.getViewById.useQuery(viewId);
+  const hasHiddenColumns = !!existingConditions?.columnVisibility?.some(
+    (col) => col.isVisible === false
+  );
 
   useEffect(() => {
     // Set the visibility map if we already have conditions for the current view
@@ -63,8 +66,10 @@ const BaseHide: React.FC<Props> = ({ tableId, viewId, tableColumns, handleViewAp
     }));
   };
 
+  const utils = api.useUtils();
   const addHiddenViewMutation = api.view.updateHide.useMutation({
       onSuccess: (data) => {
+        void utils.view.getViewById.invalidate(viewId);
         handleViewApply();
       },
       onError: (error: TRPCClientErrorLike<AppRouter>) => {
@@ -83,7 +88,10 @@ const BaseHide: React.FC<Props> = ({ tableId, viewId, tableColumns, handleViewAp
       <div className="relative">
         {/* Hide Button */}
         <Button 
-          className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white"
+          size="sm"
+          className={`enabled:hover:bg-gray-100 focus:ring-white mx-0.5 ${
+            hasHiddenColumns ? "bg-blue-100 text-blue-700" : "bg-white text-black"
+          }`}
           onClick={() => setIsDropdownOpen((prev) => !prev)}
         >
           <FaRegEyeSlash className="mr-2 h-5 w-5" />

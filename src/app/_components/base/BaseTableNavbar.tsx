@@ -37,9 +37,9 @@ export function BaseTableNavbar({
   return (
     <header className="antialiased">
       <nav className="w-full bg-white border border-t-0 border-gray py-1 dark:bg-gray-800 z-50">
-          <div className="flex flex-wrap items-center">
-              <div className="block flex flex-row">
-              <div className="border-r-2">
+        <div className="flex flex-wrap items-center items-center">
+            <div className="block flex flex-row items-center">
+              <div className="border-r-2 mr-1">
                 {/* Views Button */}
                 <Button 
                   className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white mx-1"
@@ -66,7 +66,7 @@ export function BaseTableNavbar({
                 handleViewApply={handleViewApply}
               />
 
-              <Button className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white">
+              <Button size="sm" className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white">
                 <MdListAlt className="mr-2 h-5 w-5" />
                 Group
               </Button>
@@ -79,19 +79,19 @@ export function BaseTableNavbar({
                 handleViewApply={handleViewApply}
               />
 
-              <Button className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white">
+              <Button size="sm" className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white">
                 <IoColorFillOutline className="mr-2 h-5 w-5" />
                 Color
               </Button>
 
-              <Button className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white">
+              <Button size="sm" className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white">
                 <TbArrowAutofitHeight className="h-5 w-5" />
               </Button>
               
               {/* Add Default Rows Button */}
               <AddDefaultRows tableId={tableId} handleNewRow={handleNewRow} />
 
-              <Button className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white">
+              <Button size="sm" className="bg-white text-black enabled:hover:bg-gray-100 focus:ring-white">
                 <RiShareBoxFill className="mr-2 h-5 w-5" />
                 Share and sync
               </Button>
@@ -112,8 +112,8 @@ export function BaseTableNavbar({
                     placeholder="Search"
                   />
                 </div>
-              </div>
-          </div>
+            </div>
+        </div>
       </nav>
     </header>
   )

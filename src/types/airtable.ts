@@ -13,7 +13,8 @@ export interface AirTableProps {
   handleTableColumns: (newColumn: AirColumn) => void;
   searchString: string;
   setSearchString: (value: string) => void;
-  newRows: AirRow[];
+  newCells: AirRow[];
+  setNewCells: (newCells: AirRow[]) => void;
   viewId: string;
   viewApply: boolean;
 }

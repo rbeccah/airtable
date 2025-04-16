@@ -26,6 +26,7 @@ export function  AddRowButton({ tableId, handleNewRow }: AddRowProp) {
 
     const result = await response.json() as ApiResponse;
     if (result.success && result.newRows) {
+      console.log(result.newRows);
       handleNewRow(result.newRows); // Update table when new row is added
     }
   };
@@ -33,7 +34,7 @@ export function  AddRowButton({ tableId, handleNewRow }: AddRowProp) {
   return (
     <button
       onClick={addNewRow}
-      className="flex h-full items-center text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-100 p-2 rounded w-full transition-colors"
+      className="flex h-full items-center text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-100 pl-2 rounded transition-colors"
     >
       <FaPlus className="h-4 w-4" />
     </button>
