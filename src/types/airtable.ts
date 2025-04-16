@@ -10,7 +10,7 @@ export type TableRow = {
 export interface AirTableProps {
   tableData: Table | null;
   tableId: string | null;
-  handleTableColumns: (newColumn: AirColumn) => void;
+  handleTableColumns: (columns: AirColumn[]) => void;
   searchString: string;
   setSearchString: (value: string) => void;
   newCells: AirRow[];

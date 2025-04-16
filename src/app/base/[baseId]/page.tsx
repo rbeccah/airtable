@@ -107,8 +107,8 @@ const Base = () => {
     setNewCells(newCells);
   };
 
-  const handleUpdatingNewColumn = (newColumn: AirColumn) => {
-    setSelectedTableColumns(selectedTableColumns?.concat(newColumn));
+  const handleUpdatingNewColumn = (columns: AirColumn[]) => {
+    setSelectedTableColumns(columns);
   }
 
   const handleViewApply = () => {

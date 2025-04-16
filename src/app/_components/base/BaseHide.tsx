@@ -111,7 +111,7 @@ const BaseHide: React.FC<Props> = ({ tableId, viewId, tableColumns, handleViewAp
                       checked={!hiddenColumns[col.id]}
                       label={col.name}
                       onChange={() => toggleColumnVisibility(col.id)}
-                      className="w-4 h-4 mr-10" // Small toggle & margin for spacing
+                      className="w-4 h-4 mr-10 w-full" // Small toggle & margin for spacing
                     />
                   </div>
                 ))}
