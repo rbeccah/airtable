@@ -10,12 +10,27 @@ import { RiUserShared2Line } from "react-icons/ri";
 import { IoSparkles } from "react-icons/io5";
 import { CiCircleQuestion } from "react-icons/ci";
 import { MdHistory } from "react-icons/md";
+import { api } from "~/trpc/react";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
 
-export function BaseNavbar() {
+export function BaseNavbar({ baseId, baseName }: { baseId: string; baseName: string }) {
   const router = useRouter();
   const [userMenu, setUserMenu] = useState(false);
+  const [name, setName] = useState(baseName);
+
+  const utils = api.useUtils();
+  const updateBaseName = api.base.updateBaseName.useMutation({
+    onSuccess: () => {
+      utils.invalidate(); // or just utils.base.invalidate() if scoped
+    },
+  });
+
+  const handleBlur = () => {
+    if (name.trim() && name !== baseName) {
+      updateBaseName.mutate({ baseId, newName: name });
+    }
+  };
 
   const toggleUserMenu = () => {
     setUserMenu((prev) => !prev);
@@ -40,7 +55,9 @@ export function BaseNavbar() {
                     type="text" 
                     id="default-input" 
                     className="bg-blue-600 border border-blue-600 text-white placeholder-white text-xl font-bold rounded-lg focus:ring-blue-500 focus:border-blue-300 block w-44 p-1 pl-2"
-                    placeholder="Untitled Base"
+                    placeholder={baseName}
+                    onChange={(e) => setName(e.target.value)}
+                    onBlur={handleBlur}
                   />
               </div>
               {/* Remaining Buttons */}
