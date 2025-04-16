@@ -401,12 +401,10 @@ export const AirTable: React.FC<AirTableProps> = ({
               );
             })}
 
-            <tr className="bg-white">
-              <td className="h-full border-b border-gray-300 px-2">
-                <div className="w-full flex justify-center bg-white hover:bg-gray-50">
-                  <div className="max-w-[200px] w-full flex justify-center">
-                    <AddRowButton tableId={tableId} handleNewRow={handleNewRow} />
-                  </div>
+            <tr className="h-[40px] bg-white">
+              <td colSpan={columns.length - 1} className="h-full border-b border-gray-300">
+                <div className="h-[40px] flex items-center justify-center bg-white hover:bg-gray-50">
+                  <AddRowButton tableId={tableId} handleNewRow={handleNewRow}/>
                 </div>
               </td>
             </tr>
